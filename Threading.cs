@@ -10,26 +10,26 @@ namespace Quixel
     /// <summary>
     /// Thread used for generating chunks.
     /// </summary>
-    internal class GeneratorThread
+    public class GeneratorThread<T>
     {
-        private Queue<MeshFactory.MeshRequest> genQueue;
-        private Queue<MeshFactory.MeshRequest> finishedQueue;
+        private QuixelEngine<T> Engine;
+        private Queue<MeshFactory<T>.MeshRequest<T>> genQueue;
+        private Queue<MeshFactory<T>.MeshRequest<T>> finishedQueue;
         private Thread thread;
 
-        public GeneratorThread()
+        public GeneratorThread(QuixelEngine<T> engine)
         {
-            Debug.Log("Generation Thread Started");
-            genQueue = new Queue<MeshFactory.MeshRequest>();
-            finishedQueue = new Queue<MeshFactory.MeshRequest>();
+            Engine = engine;
+            genQueue = new Queue<MeshFactory<T>.MeshRequest<T>>();
+            finishedQueue = new Queue<MeshFactory<T>.MeshRequest<T>>();
 
             try
             {
                 thread = new Thread((System.Object obj) =>
                 {
-                    generateLoop();
+                    GenerateLoop();
                 });
-
-                //new ThreadStart(generateLoop));
+                
                 thread.Priority = System.Threading.ThreadPriority.BelowNormal;
                 thread.IsBackground = true;
                 thread.Start();
@@ -44,7 +44,7 @@ namespace Quixel
         /// Queue a mesh for generation.
         /// </summary>
         /// <param name="req"></param>
-        public void queueGenerateMesh(MeshFactory.MeshRequest req)
+        public void QueueGenerateMesh(MeshFactory<T>.MeshRequest<T> req)
         {
             lock (genQueue)
                 genQueue.Enqueue(req);
@@ -54,12 +54,11 @@ namespace Quixel
         /// Returns a finished mesh request if there is one.
         /// </summary>
         /// <returns></returns>
-        public MeshFactory.MeshRequest getFinishedMesh()
+        public MeshFactory<T>.MeshRequest<T> GetFinishedMesh()
         {
             if (finishedQueue.Count > 0)
                 lock (finishedQueue)
                     return finishedQueue.Dequeue();
-
             return null;
         }
 
@@ -67,7 +66,7 @@ namespace Quixel
         /// Gets the count of queued mesh requests.
         /// </summary>
         /// <returns></returns>
-        public int getCount()
+        public int GetCount()
         {
             return genQueue.Count;
         }
@@ -75,43 +74,39 @@ namespace Quixel
         /// <summary>
         /// Continuously check if we have chunks to generate.
         /// </summary>
-        private void generateLoop()
+        private void GenerateLoop()
         {
             bool sleep = true;
-            while (QuixelEngine.isActive())
+            while (Engine.IsActive())
             {
-                sleep = false;
-
-                MeshFactory.MeshRequest req = MeshFactory.getNextRequest();
-                if (req == null)
-                    sleep = true;
-                else
+                MeshFactory<T>.MeshRequest<T> req = Engine.meshFactory.GetNextRequest();
+                sleep = req == null;
+                if (!sleep)
                 {
-                    if (req.densities == null)
+                    if (req.terrainData == null)
                         if (!req.hasDensities)
-                            req.densities = DensityPool.getDensityData();
+                            req.terrainData = new VoxelData<T>();
                         else
-                            req.densities = req.node.densityData;
-
-                    MeshFactory.GenerateMeshData(req);
-
+                            req.terrainData = req.node.data;
+                    Engine.meshFactory.GenerateMeshData(req);
                     lock (finishedQueue)
                         finishedQueue.Enqueue(req);
-                }
-
-                if (sleep)
-                    Thread.Sleep(30);
-                else
                     Thread.Sleep(4);
+                }
+                else
+                {
+                    Thread.Sleep(30);
+                }
             }
         }
     }
 
+    /*
     /// <summary>
     /// Thread used for generating densities.
     /// Currently unused due to bugs
     /// </summary>
-    internal class DensityThread
+    public class DensityThread
     {
         private Queue<DensityData> genQueue;
         private Queue<DensityData> finishedQueue;
@@ -176,110 +171,5 @@ namespace Quixel
                 }
             }
         }
-    }
-
-    /// <summary>
-    /// Thread used for saving/loading chunks.
-    /// </summary>
-    internal class FileThread
-    {
-        private Queue<Node> finishedLoadQueue;
-        private Queue<Node> loadQueue;
-        private Queue<Node> saveQueue;
-        private Thread thread;
-
-        public FileThread()
-        {
-            finishedLoadQueue = new Queue<Node>();
-            loadQueue = new Queue<Node>();
-            saveQueue = new Queue<Node>();
-
-            try
-            {
-                thread = new Thread(new ThreadStart(commitLoop));
-                thread.Priority = System.Threading.ThreadPriority.BelowNormal;
-                thread.IsBackground = true;
-                thread.Start();
-            }
-            catch (Exception e)
-            {
-                Debug.Log(e.Message + "\r\n" + e.StackTrace);
-            }
-        }
-
-        /// <summary>
-        /// Queues the node for saving.
-        /// </summary>
-        /// <param name="node"></param>
-        public void enqueueSave(Node node)
-        {
-            lock (saveQueue)
-                if (!saveQueue.Contains(node))
-                    saveQueue.Enqueue(node);
-        }
-
-        /// <summary>
-        /// Queues the node for loading.
-        /// </summary>
-        /// <param name="node"></param>
-        public void enqueueLoad(Node node)
-        {
-            lock (loadQueue)
-                loadQueue.Enqueue(node);
-        }
-
-        /// <summary>
-        /// Returns a finished node request if there is one.
-        /// </summary>
-        /// <returns></returns>
-        public Node getFinishedLoadRequest()
-        {
-            if (finishedLoadQueue.Count > 0)
-                lock (finishedLoadQueue)
-                    return finishedLoadQueue.Dequeue();
-
-            return null;
-        }
-
-        /// <summary>
-        /// Loop for committing saves and loads.
-        /// </summary>
-        private void commitLoop()
-        {
-            while (QuixelEngine.isActive())
-            {
-                try
-                {
-                    Thread.Sleep(3);
-                    if (saveQueue.Count > 0)
-                    {
-                        MeshFactory.nodesSaved++;
-                        lock (saveQueue)
-                            saveQueue.Dequeue().saveChanges();
-                    }
-
-                    if (loadQueue.Count > 0)
-                    {
-                        Node node = null;
-                        lock (loadQueue)
-                            node = loadQueue.Dequeue();
-                        if (node.loadChanges())
-                        {
-                            MeshFactory.nodesLoaded++;
-                            lock (finishedLoadQueue)
-                                finishedLoadQueue.Enqueue(node);
-                        }
-                    }
-                }
-                catch (Exception e)
-                {
-                    StreamWriter writer = new StreamWriter("Error Log.txt");
-                    writer.WriteLine(e.Message + "\r\n" + e.StackTrace);
-                    writer.Close();
-                }
-            }
-        }
-    }
-
-
+    }*/
 }

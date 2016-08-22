@@ -10,90 +10,110 @@ namespace Quixel
     /// <summary>
     /// Controls the 27 top-level nodes. Handles node searching.
     /// </summary>
-    internal static class NodeManager
+    public class NodeManager<T>
     {
-        #region Fields
-        public static string worldName;
-        public static Vector3I curBottomNode = new Vector3I(-111, 0, 0);
-        public static Vector3I curTopNode = new Vector3I(0, 0, 0);
+        public QuixelEngine<T> Engine;
+        public Vector3I curBottomNode = new Vector3I(-111, 0, 0);
+        public Vector3I curTopNode = new Vector3I(0, 0, 0);
 
-        public static Vector3I[] viewChunkPos;
+        public Vector3I[] viewChunkPos;
 
         //public static Node[,,] topNodes = new Node[3,3,3];
-        public static Node[, ,] topNodes = new Node[3, 3, 3];
+        public Node<T>[, ,] topNodes = new Node<T>[3, 3, 3];
 
-        /// <summary> Mask used for positioning subnodes</summary>
-        public static Vector3[] mask = new Vector3[8] {
-        new Vector3(0, 0, 0),
-        new Vector3(1, 0, 0),
-        new Vector3(0, 1, 0),
-        new Vector3(0, 0, 1),
-        new Vector3(1, 1, 0),
-        new Vector3(1, 0, 1),
-        new Vector3(0, 1, 1),
-        new Vector3(1, 1, 1)
-    };
+        /// <summary> 
+        /// Mask used for positioning subnodes
+        /// </summary>
+        public Vector3[] mask = new Vector3[8] 
+        {
+            new Vector3(0, 0, 0),
+            new Vector3(1, 0, 0),
+            new Vector3(0, 1, 0),
+            new Vector3(0, 0, 1),
+            new Vector3(1, 1, 0),
+            new Vector3(1, 0, 1),
+            new Vector3(0, 1, 1),
+            new Vector3(1, 1, 1)
+        };
 
-        /// <summary>Refers to the tri size of each vertex</summary>
-        public static int[] LODSize = new int[11] {
-        1,
-        2, 
-        4, 
-        8, 16, 32, 64, 128, 256, 512, 1024
-    };
+        /// <summary>
+        /// Refers to the tri size of each vertex
+        /// </summary>
+        public int[] LODSize = new int[11] 
+        {
+            1,
+            2, 
+            4, 
+            8,
+            16,
+            32,
+            64,
+            128,
+            256,
+            512,
+            1024
+        };
 
         //DEPRECATED
-        /// <summary>Radius for each LOD value</summary>
-        public static int[] LODRange = new int[11] {
-        0, 
-        7, 
-        12, 
-        26, 50, 100, 210, 400, 700, 1200, 2400
-    };
+        /// <summary>
+        /// Radius for each LOD value
+        /// </summary>
+        public int[] LODRange = new int[11] 
+        {
+            0, 
+            7, 
+            12, 
+            26,
+            50,
+            100,
+            210,
+            400,
+            700,
+            1200,
+            2400
+        };
 
-        public static int[] nodeCount = new int[11];
+        public int[] nodeCount = new int[11];
 
-        /// <summary>Density array size</summary>
-        public static int nodeSize = 16;
+        /// <summary>
+        /// Density array size
+        /// </summary>
+        public int nodeSize = 16;
 
-        /// <summary>The maximum allowed LOD. The top level nodes will be this LOD.</summary>
-        public static int maxLOD = 10;
-        #endregion
+        /// <summary>
+        /// The maximum allowed LOD. The top level nodes will be this LOD.
+        /// </summary>
+        public int maxLOD = 10;
 
         /// <summary>
         /// Initializes the node manager.
         /// </summary>
-        public static void init(string worldName)
+        public NodeManager(QuixelEngine<T> engine)
         {
-            NodeManager.worldName = worldName;
-            float nSize = LODSize[maxLOD] * nodeSize;
+            Engine = engine;
+            float nSize = LODSize[Engine.MaxLOD] * nodeSize;
             for (int x = -1; x < 2; x++)
             {
                 for (int y = -1; y < 2; y++)
                 {
                     for (int z = -1; z < 2; z++)
                     {
-                        topNodes[x + 1, y + 1, z + 1] = new Node(null,
-                            new Vector3(x * nSize,
-                                y * nSize,
-                                z * nSize),
-                            0, maxLOD, Node.RenderType.FRONT);
+                        topNodes[x + 1, y + 1, z + 1] = new Node<T>(null, this, new Vector3(x * nSize, y * nSize, z * nSize), 0, Engine.MaxLOD, Node<T>.RenderType.FRONT);
                     }
                 }
             }
 
-            viewChunkPos = new Vector3I[maxLOD + 1];
-            for (int i = 0; i <= maxLOD; i++)
+            viewChunkPos = new Vector3I[Engine.MaxLOD + 1];
+            for (int i = 0; i <= Engine.MaxLOD; i++)
                 viewChunkPos[i] = new Vector3I();
         }
 
         /// <summary>
         /// Sets the view position, and checks if chunks need to be updated
         /// </summary>
-        /// <param name="pos"></param>
-        public static void setViewPosition(Vector3 pos)
+        public void SetViewPosition(Vector3 pos)
         {
-            for (int i = 0; i <= maxLOD; i++)
+            for (int i = 0; i <= Engine.MaxLOD; i++)
             {
                 float nWidth = LODSize[i] * nodeSize;
                 viewChunkPos[i].x = (int)(pos.x / nWidth);
@@ -104,25 +124,25 @@ namespace Quixel
             float sWidth = LODSize[0] * nodeSize * 0.5f;
             Vector3I newPos = new Vector3I((int)(pos.x / sWidth), (int)(pos.y / sWidth), (int)(pos.z / sWidth));
 
-            if (!curTopNode.Equals(getTopNode(pos)))
+            if (!curTopNode.Equals(GetTopNode(pos)))
             {
-                float nodeWidth = LODSize[maxLOD] * nodeSize;
-                Vector3I diff = getTopNode(pos).Subtract(curTopNode);
-                curTopNode = getTopNode(pos);
+                float nodeWidth = LODSize[Engine.MaxLOD] * nodeSize;
+                Vector3I diff = GetTopNode(pos).Subtract(curTopNode);
+                curTopNode = GetTopNode(pos);
                 while (diff.x > 0)
                 {
                     for (int y = 0; y < 3; y++)
                     {
                         for (int z = 0; z < 3; z++)
                         {
-                            topNodes[0, y, z].dispose();
+                            topNodes[0, y, z].Dispose();
                             topNodes[0, y, z] = topNodes[1, y, z];
                             topNodes[1, y, z] = topNodes[2, y, z];
-                            topNodes[2, y, z] = new Node(null,
+                            topNodes[2, y, z] = new Node<T>(null, this,
                                                 new Vector3((curTopNode.x * nodeWidth) + nodeWidth,
                                                     (curTopNode.y * nodeWidth) + ((y - 1) * nodeWidth),
                                                     (curTopNode.z * nodeWidth) + ((z - 1) * nodeWidth)),
-                                                0, maxLOD, Node.RenderType.FRONT);
+                                                0, Engine.MaxLOD, Node<T>.RenderType.FRONT);
                         }
                     }
                     diff.x--;
@@ -134,14 +154,14 @@ namespace Quixel
                     {
                         for (int z = 0; z < 3; z++)
                         {
-                            topNodes[2, y, z].dispose();
+                            topNodes[2, y, z].Dispose();
                             topNodes[2, y, z] = topNodes[1, y, z];
                             topNodes[1, y, z] = topNodes[0, y, z];
-                            topNodes[0, y, z] = new Node(null,
+                            topNodes[0, y, z] = new Node<T>(null, this,
                                                 new Vector3((curTopNode.x * nodeWidth) - nodeWidth,
                                                     (curTopNode.y * nodeWidth) + ((y - 1) * nodeWidth),
                                                     (curTopNode.z * nodeWidth) + ((z - 1) * nodeWidth)),
-                                                0, maxLOD, Node.RenderType.FRONT);
+                                                0, Engine.MaxLOD, Node<T>.RenderType.FRONT);
                         }
                     }
                     diff.x++;
@@ -153,14 +173,14 @@ namespace Quixel
                     {
                         for (int z = 0; z < 3; z++)
                         {
-                            topNodes[x, 0, z].dispose();
+                            topNodes[x, 0, z].Dispose();
                             topNodes[x, 0, z] = topNodes[x, 1, z];
                             topNodes[x, 1, z] = topNodes[x, 2, z];
-                            topNodes[x, 2, z] = new Node(null,
+                            topNodes[x, 2, z] = new Node<T>(null, this,
                                                 new Vector3((curTopNode.x * nodeWidth) + ((x - 1) * nodeWidth),
                                                     (curTopNode.y * nodeWidth) + nodeWidth,
                                                     (curTopNode.z * nodeWidth) + ((z - 1) * nodeWidth)),
-                                                0, maxLOD, Node.RenderType.FRONT);
+                                                0, Engine.MaxLOD, Node<T>.RenderType.FRONT);
                         }
                     }
                     diff.y--;
@@ -172,14 +192,14 @@ namespace Quixel
                     {
                         for (int z = 0; z < 3; z++)
                         {
-                            topNodes[x, 2, z].dispose();
+                            topNodes[x, 2, z].Dispose();
                             topNodes[x, 2, z] = topNodes[x, 1, z];
                             topNodes[x, 1, z] = topNodes[x, 0, z];
-                            topNodes[x, 0, z] = new Node(null,
+                            topNodes[x, 0, z] = new Node<T>(null, this,
                                                 new Vector3((curTopNode.x * nodeWidth) + ((x - 1) * nodeWidth),
                                                     (curTopNode.y * nodeWidth) - nodeWidth,
                                                     (curTopNode.z * nodeWidth) + ((z - 1) * nodeWidth)),
-                                                0, maxLOD, Node.RenderType.FRONT);
+                                                0, Engine.MaxLOD, Node<T>.RenderType.FRONT);
                         }
                     }
 
@@ -192,14 +212,14 @@ namespace Quixel
                     {
                         for (int y = 0; y < 3; y++)
                         {
-                            topNodes[x, y, 0].dispose();
+                            topNodes[x, y, 0].Dispose();
                             topNodes[x, y, 0] = topNodes[x, y, 1];
                             topNodes[x, y, 1] = topNodes[x, y, 2];
-                            topNodes[x, y, 2] = new Node(null,
+                            topNodes[x, y, 2] = new Node<T>(null, this,
                                                 new Vector3((curTopNode.x * nodeWidth) + ((x - 1) * nodeWidth),
                                                     (curTopNode.y * nodeWidth) + ((y - 1) * nodeWidth),
                                                     (curTopNode.z * nodeWidth) + nodeWidth),
-                                                0, maxLOD, Node.RenderType.FRONT);
+                                                0, Engine.MaxLOD, Node<T>.RenderType.FRONT);
                         }
                     }
 
@@ -212,14 +232,14 @@ namespace Quixel
                     {
                         for (int y = 0; y < 3; y++)
                         {
-                            topNodes[x, y, 2].dispose();
+                            topNodes[x, y, 2].Dispose();
                             topNodes[x, y, 2] = topNodes[x, y, 1];
                             topNodes[x, y, 1] = topNodes[x, y, 0];
-                            topNodes[x, y, 0] = new Node(null,
+                            topNodes[x, y, 0] = new Node<T>(null, this,
                                                 new Vector3((curTopNode.x * nodeWidth) + ((x - 1) * nodeWidth),
                                                     (curTopNode.y * nodeWidth) + ((y - 1) * nodeWidth),
                                                     (curTopNode.z * nodeWidth) - nodeWidth),
-                                                0, maxLOD, Node.RenderType.FRONT);
+                                                0, Engine.MaxLOD, Node<T>.RenderType.FRONT);
                         }
                     }
                     diff.z++;
@@ -233,7 +253,7 @@ namespace Quixel
                     for (int y = 0; y < 3; y++)
                         for (int z = 0; z < 3; z++)
                         {
-                            topNodes[x, y, z].viewPosChanged(setPos);
+                            topNodes[x, y, z].ViewPosChanged(setPos);
                         }
 
                 curBottomNode = newPos;
@@ -243,12 +263,10 @@ namespace Quixel
         /// <summary>
         /// Returns a node containing the point as close as possible to the requested LOD.
         /// </summary>
-        /// <param name="pos"></param>
-        /// <param name="searchLOD"></param>
         /// <returns>Null if no such node exists.</returns>
-        public static Node[] searchNodeContainingDensity(Vector3 pos, int searchLOD)
+        public Node<T>[] SearchNodeContainingDensity(Vector3 pos, int searchLOD)
         {
-            Node[] ret = new Node[8];
+            Node<T>[] ret = new Node<T>[8];
             for (int x = 0; x < 3; x++)
             {
                 for (int y = 0; y < 3; y++)
@@ -256,7 +274,7 @@ namespace Quixel
                     for (int z = 0; z < 3; z++)
                     {
                         if (topNodes[x, y, z] != null)
-                            topNodes[x, y, z].searchNodeCreate(pos, searchLOD, ref ret);
+                            topNodes[x, y, z].SearchNodeCreate(pos, searchLOD, ref ret);
                     }
                 }
             }
@@ -267,10 +285,8 @@ namespace Quixel
         /// <summary>
         /// Returns a node containing the point as close as possible to the requested LOD.
         /// </summary>
-        /// <param name="pos"></param>
-        /// <param name="searchLOD"></param>
         /// <returns>Null if no such node exists.</returns>
-        public static Node searchNode(Vector3 pos, int searchLOD)
+        public Node<T> SearchNode(Vector3 pos, int searchLOD)
         {
             for (int x = 0; x < 3; x++)
             {
@@ -279,8 +295,8 @@ namespace Quixel
                     for (int z = 0; z < 3; z++)
                     {
                         if (topNodes[x, y, z] != null)
-                            if (topNodes[x, y, z].containsPoint(pos))
-                                return topNodes[x, y, z].searchNode(pos, searchLOD);
+                            if (topNodes[x, y, z].ContainsPoint(pos))
+                                return topNodes[x, y, z].SearchNode(pos, searchLOD);
                     }
                 }
             }
@@ -294,9 +310,8 @@ namespace Quixel
         /// <param name="parentNode">Parent that contains t</param>
         /// <param name="subNodeID">Index of the node in the subnode array</param>
         /// <returns></returns>
-        public static Vector3 getOffsetPosition(Node parentNode, int subNodeID)
+        public Vector3 GetOffsetPosition(Node<T> parentNode, int subNodeID)
         {
-            //Vector3 ret = new Vector3(parentNode.position.x, parentNode.position.y, parentNode.position.z);
             int parentWidth = nodeSize * LODSize[parentNode.LOD];
             return new Vector3
             {
@@ -309,85 +324,83 @@ namespace Quixel
         /// <summary>
         /// Returns a 3d integer vector position of the "top" (highest LOD) node that contains the given position.
         /// </summary>
-        /// <param name="pos"></param>
-        /// <returns></returns>
-        public static Vector3I getTopNode(Vector3 pos)
+        public Vector3I GetTopNode(Vector3 pos)
         {
             Vector3I ret = new Vector3I();
-            ret.x = (int)Mathf.Floor(pos.x / (NodeManager.LODSize[maxLOD] * nodeSize));
-            ret.y = (int)Mathf.Floor(pos.y / (NodeManager.LODSize[maxLOD] * nodeSize));
-            ret.z = (int)Mathf.Floor(pos.z / (NodeManager.LODSize[maxLOD] * nodeSize));
+            ret.x = (int)Mathf.Floor(pos.x / (LODSize[Engine.MaxLOD] * nodeSize));
+            ret.y = (int)Mathf.Floor(pos.y / (LODSize[Engine.MaxLOD] * nodeSize));
+            ret.z = (int)Mathf.Floor(pos.z / (LODSize[Engine.MaxLOD] * nodeSize));
 
             return ret;
-        }
-
-        /// <summary>
-        /// Used to draw the chunk wirecubes in scene view
-        /// </summary>
-        /// <returns></returns>
-        public static int debugDraw()
-        {
-            int ct = 0;
-            for (int x = 0; x < 3; x++)
-            {
-                for (int y = 0; y < 3; y++)
-                {
-                    for (int z = 0; z < 3; z++)
-                    {
-                        if (topNodes[x, y, z] != null)
-                            ct += topNodes[x, y, z].debugDraw();
-                    }
-                }
-            }
-            return ct;
         }
     }
 
     /// <summary>
     /// Octree node (chunk)
     /// </summary>
-    internal class Node
+    public class Node<T>
     {
-        #region Fields
-        /// <summary> When we are already generating a new mesh and need a new regeneration. </summary>
+        /// <summary> 
+        /// When we are already generating a new mesh and need a new regeneration. 
+        /// </summary>
         public bool regenFlag = false;
         private bool regenReq = false;
         public bool permanent = false;
         public bool hasDensityChangeData = false;
 
-        /// <summary> Density array that contains the mesh data. </summary>
-        public DensityData densityData;
-        public DensityData densityChangeData;
+        /// <summary> 
+        /// Array that contains the mesh data. 
+        /// </summary>
+        public VoxelData<T> data;
+        public VoxelData<T> changeData;
 
-        /// <summary>Index of this node in the parent node's subnode array</summary>
+        /// <summary>
+        /// Index of this node in the parent node's subnode array
+        /// </summary>
         public int subNodeID;
 
-        /// <summary>Level of Detail value</summary>
+        /// <summary>
+        /// Level of Detail value
+        /// </summary>
         public int LOD;
 
-        /// <summary> The integer position of the chunk (Not real) </summary>
+        /// <summary> 
+        /// The integer position of the chunk (Not real) 
+        /// </summary>
         public Vector3I chunkPos;
 
-        /// <summary>Real position</summary>
+        /// <summary>
+        /// Real position
+        /// </summary>
         public Vector3 position;
 
-        /// <summary>Subnodes under this parent node</summary>
-        public Node[] subNodes = new Node[8];
+        /// <summary>
+        /// Subnodes under this parent node
+        /// </summary>
+        public Node<T>[] subNodes = new Node<T>[8];
 
         /// <summary>
         /// Neighbor nodes of the same LOD
         /// Null means the neighbor node either doesn't exist or hasn't been allocated yet.
         /// </summary>
-        public Node[] neighborNodes = new Node[6];
+        public Node<T>[] neighborNodes = new Node<T>[6];
 
-        /// <summary>The parent that owns this node. Null if top-level</summary>
-        public Node parent;
+        /// <summary>
+        /// The parent that owns this node. Null if top-level
+        /// </summary>
+        public Node<T> parent;
 
-        /// <summary>Gameobject that contains the mesh</summary>
-        private GameObject chunk;
+        /// <summary>
+        /// Gameobject that contains the mesh
+        /// </summary>
+        public GameObject chunk;
 
-        /// <summary> Center of the chunk in real pos </summary>
+        /// <summary> 
+        /// Center of the chunk in real pos 
+        /// </summary>
         public Vector3 center;
+
+        public NodeManager<T> manager;
 
         public bool disposed = false;
         public bool hasMesh = false;
@@ -400,86 +413,78 @@ namespace Quixel
             FRONT, BACK
         }
 
-        /// <summary> Mask used for positioning subnodes</summary>
-        public static Vector3[] neighborMask = new Vector3[6] {
-        new Vector3(-1, 0, 0),
-        new Vector3(0, -1, 0),
-        new Vector3(0, 0, -1),
-        new Vector3(1, 0, 0),
-        new Vector3(0, 1, 0),
-        new Vector3(0, 0, 1),
-    };
-
-        public static int[] oppositeNeighbor = new int[6] {
-        3, 4, 5, 0, 1, 2
-    };
-        #endregion
-
-        public Node(Node parent, Vector3 position, int subNodeID, int LOD, RenderType renderType)
+        /// <summary> 
+        /// Mask used for positioning subnodes
+        /// </summary>
+        public static Vector3[] neighborMask = new Vector3[6] 
         {
-            densityChangeData = new DensityData();
+            new Vector3(-1, 0, 0),
+            new Vector3(0, -1, 0),
+            new Vector3(0, 0, -1),
+            new Vector3(1, 0, 0),
+            new Vector3(0, 1, 0),
+            new Vector3(0, 0, 1),
+        };
+
+        public static int[] oppositeNeighbor = new int[6] 
+        {
+            3,
+            4,
+            5,
+            0,
+            1,
+            2
+        };
+
+        public Node(Node<T> parent, NodeManager<T> manager, Vector3 position, int subNodeID, int LOD, RenderType renderType)
+        {
+            changeData = new VoxelData<T>();
+            this.manager = manager;
             this.parent = parent;
             this.position = position;
             this.subNodeID = subNodeID;
             this.LOD = LOD;
 
-            float chunkWidth = (NodeManager.LODSize[LOD] * NodeManager.nodeSize) / 2f;
-            center = new Vector3(position.x + chunkWidth,
-                position.y + chunkWidth,
-                position.z + chunkWidth);
+            float chunkWidth = (manager.LODSize[LOD] * manager.nodeSize) / 2f;
+            center = new Vector3(position.x + chunkWidth, position.y + chunkWidth, position.z + chunkWidth);
 
-            setRenderType(renderType);
+            SetRenderType(renderType);
 
             if (parent != null && parent.permanent)
                 permanent = true;
 
-            NodeManager.nodeCount[LOD]++;
+            manager.nodeCount[LOD]++;
 
-            float nWidth = NodeManager.LODSize[LOD] * NodeManager.nodeSize;
+            float nWidth = manager.LODSize[LOD] * manager.nodeSize;
             chunkPos.x = (int)(center.x / nWidth);
             chunkPos.y = (int)(center.y / nWidth);
             chunkPos.z = (int)(center.z / nWidth);
 
-            if (LOD == 0)
-            {
-                string dir = getDirectory();
-                if (Directory.Exists(dir) && File.Exists(dir + "\\densities.txt"))
-                    MeshFactory.requestLoad(this);
-            }
-
             regenReq = true;
-            MeshFactory.requestMesh(this);
+            manager.Engine.meshFactory.RequestMesh(this);
         }
 
         /// <summary>
         /// Called when the viewpoint has changed.
         /// </summary>
         /// <param name="pos"></param>
-        public void viewPosChanged(Vector3 pos)
+        public void ViewPosChanged(Vector3 pos)
         {
-            //float sep = 10f;
-
-            //float distance = ((center.x - pos.x) * (center.x - pos.x) +
-            //(center.y - pos.y) * (center.y - pos.y) +
-            //(center.z - pos.z) * (center.z - pos.z));
-
-            //if (distance < (((float)NodeManager.LODRange[LOD]) * sep) * (((float)NodeManager.LODRange[LOD]) * sep))
-            Vector3I viewPos = NodeManager.viewChunkPos[LOD];
+            Vector3I viewPos = manager.viewChunkPos[LOD];
             int size = 1;
             if ((viewPos.x >= chunkPos.x - size && viewPos.x <= chunkPos.x + size)
                 && (viewPos.y >= chunkPos.y - size && viewPos.y <= chunkPos.y + size)
                 && (viewPos.z >= chunkPos.z - size && viewPos.z <= chunkPos.z + size))
             {
-                if (isBottomLevel())
-                    createSubNodes(RenderType.FRONT);
+                if (IsBottomLevel())
+                    CreateSubNodes(RenderType.FRONT);
 
                 for (int i = 0; i < 8; i++)
                 {
                     if (subNodes[i] != null)
-                        subNodes[i].viewPosChanged(pos);
+                        subNodes[i].ViewPosChanged(pos);
                 }
             }
-            //else if (!permanent)
             else
             {
                 size += 2;
@@ -491,7 +496,7 @@ namespace Quixel
                     {
                         if (subNodes[i] != null)
                         {
-                            subNodes[i].dispose();
+                            subNodes[i].Dispose();
                             subNodes[i] = null;
                         }
                     }
@@ -502,7 +507,7 @@ namespace Quixel
                     {
                         if (subNodes[i] != null)
                         {
-                            subNodes[i].dispose();
+                            subNodes[i].Dispose();
                             subNodes[i] = null;
                         }
                     }
@@ -511,7 +516,7 @@ namespace Quixel
 
             if (LOD == 0)
             {
-                float nodeSize = (float)NodeManager.LODSize[0] * (float)NodeManager.nodeSize;
+                float nodeSize = (float)manager.LODSize[0] * (float)manager.nodeSize;
                 Vector3I viewChunk = new Vector3I((int)(pos.x / nodeSize),
                     (int)(pos.y / nodeSize),
                     (int)(pos.z / nodeSize));
@@ -527,12 +532,12 @@ namespace Quixel
                     collides = true;
                     if (chunk != null)
                     {
-                        chunk.GetComponent<MeshCollider>().sharedMesh = chunk.GetComponent<MeshFilter>().sharedMesh;
+                        // chunk.GetComponent<MeshCollider>().sharedMesh = chunk.GetComponent<MeshFilter>().sharedMesh;
                     }
                 }
             }
 
-            renderCheck();
+            RenderCheck();
         }
 
         /// <summary>
@@ -540,9 +545,9 @@ namespace Quixel
         /// </summary>
         /// <param name="pos"></param>
         /// <returns></returns>
-        public void searchNodeCreate(Vector3 pos, int searchLOD, ref Node[] list)
+        public void SearchNodeCreate(Vector3 pos, int searchLOD, ref Node<T>[] list)
         {
-            if (containsDensityPoint(pos))
+            if (ContainsDensityPoint(pos))
             {
                 if (LOD == searchLOD)
                 {
@@ -556,12 +561,12 @@ namespace Quixel
                 }
                 else
                 {
-                    if (isBottomLevel())
-                        createSubNodes(RenderType.FRONT);
+                    if (IsBottomLevel())
+                        CreateSubNodes(RenderType.FRONT);
 
                     for (int i = 0; i < 8; i++)
                     {
-                        subNodes[i].searchNodeCreate(pos, searchLOD, ref list);
+                        subNodes[i].SearchNodeCreate(pos, searchLOD, ref list);
                     }
                 }
             }
@@ -572,28 +577,29 @@ namespace Quixel
         /// </summary>
         /// <param name="pos"></param>
         /// <returns></returns>
-        public Node searchNode(Vector3 pos, int searchLOD)
+        public Node<T> SearchNode(Vector3 pos, int searchLOD)
         {
-            if (containsDensityPoint(pos))
+            if (ContainsDensityPoint(pos))
             {
                 if (searchLOD == LOD)
                     return this;
 
-                if (!isBottomLevel())
+                if (!IsBottomLevel())
+                {
                     for (int i = 0; i < 8; i++)
                         if (subNodes[i] != null)
                         {
-                            if (subNodes[i].containsPoint(pos))
-                                return subNodes[i].searchNode(pos, searchLOD);
+                            if (subNodes[i].ContainsPoint(pos))
+                                return subNodes[i].SearchNode(pos, searchLOD);
                         }
-
+                }
                 return this;
             }
 
             if (parent != null)
-                return parent.searchNode(pos, searchLOD);
+                return parent.SearchNode(pos, searchLOD);
 
-            return NodeManager.searchNode(pos, searchLOD);
+            return manager.SearchNode(pos, searchLOD);
         }
 
         /// <summary>
@@ -601,9 +607,9 @@ namespace Quixel
         /// </summary>
         /// <param name="pos"></param>
         /// <returns></returns>
-        public bool containsPoint(Vector3 pos)
+        public bool ContainsPoint(Vector3 pos)
         {
-            float chunkWidth = NodeManager.LODSize[LOD] * NodeManager.nodeSize;
+            float chunkWidth = manager.LODSize[LOD] * manager.nodeSize;
             if ((pos.x >= position.x && pos.y >= position.y && pos.z >= position.z)
                 && (pos.x <= position.x + chunkWidth && pos.y <= position.y + chunkWidth && pos.z <= position.z + chunkWidth))
             {
@@ -618,16 +624,16 @@ namespace Quixel
         /// </summary>
         /// <param name="pos"></param>
         /// <returns></returns>
-        public bool containsDensityPoint(Vector3 pos)
+        public bool ContainsDensityPoint(Vector3 pos)
         {
-            float chunkWidth = NodeManager.LODSize[LOD] * NodeManager.nodeSize;
-			Vector3 corner1 = new Vector3(position.x - NodeManager.LODSize[LOD],
-										position.y - NodeManager.LODSize[LOD],
-										position.z - NodeManager.LODSize[LOD]);
+            float chunkWidth = manager.LODSize[LOD] * manager.nodeSize;
+			Vector3 corner1 = new Vector3(position.x - manager.LODSize[LOD],
+										position.y - manager.LODSize[LOD],
+										position.z - manager.LODSize[LOD]);
 										
-			Vector3 corner2 = new Vector3(position.x + chunkWidth + NodeManager.LODSize[LOD],
-										position.y + chunkWidth + NodeManager.LODSize[LOD],
-										position.z + chunkWidth + NodeManager.LODSize[LOD]);
+			Vector3 corner2 = new Vector3(position.x + chunkWidth + manager.LODSize[LOD],
+										position.y + chunkWidth + manager.LODSize[LOD],
+										position.z + chunkWidth + manager.LODSize[LOD]);
 										
 			if((pos.x >= corner1.x && pos.y >= corner1.y && pos.z >= corner1.z) &&
 				(pos.x <= corner2.x && pos.y <= corner2.y && pos.z <= corner2.z)) {
@@ -640,90 +646,74 @@ namespace Quixel
         /// <summary>
         /// Checks whether this chunk should render and where.
         /// </summary>
-        public void renderCheck()
+        public void RenderCheck()
         {
             if (disposed)
             {
                 if (chunk != null)
-                    chunk.GetComponent<MeshFilter>().renderer.enabled = false;
+                    manager.Engine.controller.SetRenderState(this, false);
                 return;
             }
 
             if (chunk != null)
-                if (isBottomLevel())
+            {
+                if (IsBottomLevel())
                 {
-                    chunk.GetComponent<MeshFilter>().renderer.enabled = true;
-                    setRenderType(RenderType.FRONT);
+                    manager.Engine.controller.SetRenderState(this, true);
+                    SetRenderType(RenderType.FRONT);
                 }
                 else
                 {
-                    bool render = false;
                     for (int i = 0; i < 8; i++)
+                    {
                         if (subNodes[i] != null && !subNodes[i].hasMesh)
                         {
-                            render = true;
-                            setRenderType(RenderType.FRONT);
+                            SetRenderType(RenderType.FRONT);
                         }
-                    chunk.GetComponent<MeshFilter>().renderer.enabled = render;
+                    }
+                    if (chunk != null)
+                        manager.Engine.controller.SetRenderState(this, false);
                 }
+            }
         }
 
         /// <summary>
         /// Called when a mesh has been generated
         /// </summary>
         /// <param name="mesh">Mesh data</param>
-        public void setMesh(MeshData meshData)
+        public void SetMesh(MeshData meshData)
         {
-            densityData.setChangeData(densityChangeData);
+            data.SetChangeData(changeData);
 
             regenReq = false;
             if (regenFlag)
             {
                 regenFlag = false;
                 regenReq = true;
-                MeshFactory.requestMesh(this);
+                manager.Engine.meshFactory.RequestMesh(this);
             }
 
             hasMesh = true;
             if (meshData.indexArray.Length == 0)
                 return;
 
-            if (chunk == null)
-            {
-                chunk = ChunkPool.getChunk();
-                if (LOD > 2)
-                    chunk.transform.position = position - new Vector3(0f, (NodeManager.LODSize[LOD] / 2f), 0f);
-                else
-                    chunk.transform.position = position;
-
-                //chunk.GetComponent<MeshFilter>().mesh.subMeshCount = QuixelEngine.materials.Length;
-                chunk.GetComponent<MeshRenderer>().materials = QuixelEngine.materials;
-            }
-
             empty = false;
             Mesh mesh = new Mesh();
-            mesh.subMeshCount = QuixelEngine.materials.Length;
+            mesh.subMeshCount = manager.Engine.controller.GetMaterialCount();
             mesh.vertices = meshData.triangleArray;
 
-            for (int i = 0; i < QuixelEngine.materials.Length; i++)
+            for (int i = 0; i < manager.Engine.controller.GetMaterialCount(); i++)
             {
                 if (meshData.indexArray[i].Length > 0)
                     mesh.SetTriangles(meshData.indexArray[i], i);
             }
-            //mesh.triangles = meshData.indexArray;
             mesh.uv = meshData.uvArray;
-
             mesh.normals = meshData.normalArray;
-            //mesh.RecalculateBounds();
             mesh.Optimize();
+            manager.Engine.controller.ApplyVoxelData(mesh, this);
+            meshData.Dispose();
 
-            chunk.GetComponent<MeshFilter>().mesh = mesh;
-
-            if (LOD == 0 && collides)
-                chunk.GetComponent<MeshCollider>().sharedMesh = mesh;
-            meshData.dispose();
-
-            renderCheck();
+            RenderCheck();
             switch (renderType)
             {
                 case RenderType.BACK:
@@ -737,7 +727,7 @@ namespace Quixel
                     break;
             }
             if (parent != null)
-                parent.renderCheck();
+                parent.RenderCheck();
         }
 
         /// <summary>
@@ -745,7 +735,7 @@ namespace Quixel
         /// Front will be rendered last, on top of Back.
         /// </summary>
         /// <param name="r"></param>
-        public void setRenderType(RenderType r)
+        public void SetRenderType(RenderType r)
         {
             switch (r)
             {
@@ -767,7 +757,7 @@ namespace Quixel
         /// Returns whether or not this is the bottom level of the tree.
         /// </summary>
         /// <returns></returns>
-        public bool isBottomLevel()
+        public bool IsBottomLevel()
         {
             for (int i = 0; i < 8; i++)
             {
@@ -785,7 +775,7 @@ namespace Quixel
         /// True if an adjacent node of the same LOD has subnodes.
         /// </summary>
         /// <returns></returns>
-        public bool isTransitional()
+        public bool IsTransitional()
         {
             if (LOD == 1 || LOD == 0)
                 return false;
@@ -793,7 +783,7 @@ namespace Quixel
             for (int i = 0; i < 6; i++)
             {
                 if (neighborNodes[i] != null)
-                    if (neighborNodes[i].LOD == this.LOD && neighborNodes[i].isBottomLevel() && !isBottomLevel())
+                    if (neighborNodes[i].LOD == this.LOD && neighborNodes[i].IsBottomLevel() && !IsBottomLevel())
                         return true;
             }
 
@@ -803,7 +793,7 @@ namespace Quixel
         /// <summary>
         /// Populates the subnode array
         /// </summary>
-        public void createSubNodes(RenderType type)
+        public void CreateSubNodes(RenderType type)
         {
             if (LOD == 0)
                 return;
@@ -813,7 +803,7 @@ namespace Quixel
                 for (int i = 0; i < 8; i++)
                 {
                     if (subNodes[i].renderType != type)
-                        subNodes[i].setRenderType(type);
+                        subNodes[i].SetRenderType(type);
 
                     subNodes[i].disposed = false;
                 }
@@ -823,70 +813,39 @@ namespace Quixel
             for (int i = 0; i < 8; i++)
             {
                 if (subNodes[i] == null)
-                    subNodes[i] = new Node(this, NodeManager.getOffsetPosition(this, i), i, LOD - 1, type);
+                    subNodes[i] = new Node<T>(this, manager, manager.GetOffsetPosition(this, i), i, LOD - 1, type);
             }
         }
         /// <summary>
-        /// Sets the density of a point, given a world pos.
+        /// Sets the data of a point, given a world pos.
         /// </summary>
         /// <param name="worldPos"></param>
-        public void setDensityFromWorldPos(Vector3 worldPos, float val)
+        public void SetDataFromWorldPos(Vector3 worldPos, T val)
         {
             worldPos = worldPos - position;
-            Vector3I arrayPos = new Vector3I((int)Math.Round(worldPos.x) / NodeManager.LODSize[LOD],
-                                            (int)Math.Round(worldPos.y) / NodeManager.LODSize[LOD],
-                                            (int)Math.Round(worldPos.z) / NodeManager.LODSize[LOD]);
+            Vector3I arrayPos = new Vector3I((int)Math.Round(worldPos.x) / manager.LODSize[LOD],
+                                            (int)Math.Round(worldPos.y) / manager.LODSize[LOD],
+                                            (int)Math.Round(worldPos.z) / manager.LODSize[LOD]);
 
             if (arrayPos.x < -1 || arrayPos.x > 17 ||
                 arrayPos.y < -1 || arrayPos.y > 17 ||
                 arrayPos.z < -1 || arrayPos.z > 17)
             {
-                Debug.Log("Wrong node. " + arrayPos + ":" + worldPos + ":" + containsDensityPoint(worldPos).ToString());
+                Debug.Log("Wrong node. " + arrayPos + ":" + worldPos + ":" + ContainsDensityPoint(worldPos).ToString());
                 return;
             }
 
-            densityChangeData.set(arrayPos.x, arrayPos.y, arrayPos.z, val);
+            changeData.Set(arrayPos.x, arrayPos.y, arrayPos.z, val);
             setPermanence(true);
 
             hasDensityChangeData = true;
-            MeshFactory.requestSave(this);
-        }
-
-        /// <summary>
-        /// Sets the material of the voxel at the given world position.
-        /// </summary>
-        /// <param name="worldPos"></param>
-        /// <param name="val"></param>
-        public void setMaterialFromWorldPos(Vector3 worldPos, byte val)
-        {
-            worldPos = worldPos - position;
-            Vector3I arrayPos = new Vector3I((int)Math.Round(worldPos.x) / NodeManager.LODSize[LOD],
-                                            (int)Math.Round(worldPos.y) / NodeManager.LODSize[LOD],
-                                            (int)Math.Round(worldPos.z) / NodeManager.LODSize[LOD]);
-
-            if (arrayPos.x < -1 || arrayPos.x > 17 ||
-                arrayPos.y < -1 || arrayPos.y > 17 ||
-                arrayPos.z < -1 || arrayPos.z > 17)
-            {
-                Debug.Log("Wrong node. " + arrayPos);
-                return;
-            }
-
-            bool change = (densityChangeData.getMaterial(arrayPos.x, arrayPos.y, arrayPos.z) != val);
-            densityChangeData.setMaterial(arrayPos.x, arrayPos.y, arrayPos.z, val);
-
-            if (change)
-            {
-                setPermanence(true);
-                hasDensityChangeData = true;
-                MeshFactory.requestSave(this);
-            }
+            // manager.Engine.meshFactory.requestSave(this);
         }
 
         /// <summary>
         /// Regenerates the chunk without threading.
         /// </summary>
-        public void regenerateChunk()
+        public void RegenerateChunk()
         {
             if (regenReq)
             {
@@ -894,91 +853,15 @@ namespace Quixel
             }
             else
             {
-                MeshFactory.requestMesh(this);
+                manager.Engine.meshFactory.RequestMesh(this);
                 regenReq = true;
             }
         }
 
         /// <summary>
-        /// Saves changes, if any.
-        /// </summary>
-        public void saveChanges()
-        {
-            if (!permanent)
-                return;
-
-            string dir = getDirectory();
-            if (!Directory.Exists(dir))
-                Directory.CreateDirectory(dir);
-
-            int[] matData = densityChangeData.compressMaterialData();
-            float[] data = densityChangeData.compressDensityData();
-
-            StreamWriter writer = new StreamWriter(dir + "\\materials.txt");
-            for (int i = 0; i < matData.Length; i += 2)
-                writer.WriteLine(matData[i] + "," + matData[i + 1]);
-            writer.Close();
-
-            writer = new StreamWriter(dir + "\\densities.txt");
-            for (int i = 0; i < data.Length; i += 2)
-                writer.WriteLine(data[i] + "," + data[i + 1]);
-            writer.Close();
-        }
-
-        /// <summary>
-        /// Attempts to load density changes.
-        /// </summary>
-        public bool loadChanges()
-        {
-            string dir = getDirectory();
-            if (!Directory.Exists(dir))
-                return false;
-
-            if (!File.Exists(dir + "\\densities.txt"))
-                return false;
-
-            List<string> fileData = new List<string>();
-            StreamReader reader = new StreamReader(dir + "\\densities.txt");
-            while (!reader.EndOfStream)
-                fileData.Add(reader.ReadLine());
-
-            float[] data = new float[fileData.Count * 2];
-            string[] split = new string[2];
-            for (int i = 0; i < fileData.Count; i++)
-            {
-                split = fileData[i].Split(',');
-                data[(i * 2)] = float.Parse(split[0]);
-                data[(i * 2) + 1] = float.Parse(split[1]);
-            }
-
-            reader.Close();
-            densityChangeData.decompressDensityData(data);
-
-            fileData = new List<string>();
-            reader = new StreamReader(dir + "\\materials.txt");
-            while (!reader.EndOfStream)
-                fileData.Add(reader.ReadLine());
-
-            int[] mdata = new int[fileData.Count * 2];
-            split = new string[2];
-            for (int i = 0; i < fileData.Count; i++)
-            {
-                split = fileData[i].Split(',');
-                mdata[(i * 2)] = int.Parse(split[0]);
-                mdata[(i * 2) + 1] = int.Parse(split[1]);
-            }
-
-            reader.Close();
-            densityChangeData.decompressMaterialData(mdata);
-
-            hasDensityChangeData = true;
-            return true;
-        }
-
-        /// <summary>
         /// Disposes of subnodes
         /// </summary>
-        public void dispose()
+        public void Dispose()
         {
             //If already disposed, exit.
             if (disposed)
@@ -990,7 +873,7 @@ namespace Quixel
             {
                 if (subNodes[i] != null)
                 {
-                    subNodes[i].dispose();
+                    subNodes[i].Dispose();
                     subNodes[i] = null;
                 }
             }
@@ -998,15 +881,15 @@ namespace Quixel
             if (permanent)
             {
                 if (chunk != null)
-                    chunk.GetComponent<MeshFilter>().renderer.enabled = false;
+                    manager.Engine.controller.SetRenderState(this, false);
                 return;
             }
 
-            NodeManager.nodeCount[LOD]--;
+            manager.nodeCount[LOD]--;
 
             hasMesh = false;
             if (parent != null)
-                parent.renderCheck();
+                parent.RenderCheck();
 
             //Remove this node from the neighbor of existing nodes.
             for (int i = 0; i < 6; i++)
@@ -1016,21 +899,6 @@ namespace Quixel
                     neighborNodes[i].neighborNodes[oppositeNeighbor[i]] = null;
                 }
             }
-
-            if (chunk != null)
-            {
-                UnityEngine.Object.Destroy(chunk.GetComponent<MeshFilter>().sharedMesh);
-                Mesh mesh = chunk.GetComponent<MeshCollider>().sharedMesh;
-                if (mesh != null)
-                    UnityEngine.Object.Destroy(mesh);
-
-                ChunkPool.recycleChunk(chunk);
-            }
-
-            if (densityData != null)
-                DensityPool.recycleDensityData(densityData);
-            if (densityChangeData != null)
-                DensityPool.recycleDensityData(densityChangeData);
         }
 
         /// <summary>
@@ -1038,7 +906,7 @@ namespace Quixel
         /// </summary>
         private void findNeighbors()
         {
-            float nodeWidth = NodeManager.LODSize[LOD] * NodeManager.nodeSize;
+            float nodeWidth = manager.LODSize[LOD] * manager.nodeSize;
             Vector3 searchPos = new Vector3();
             for (int i = 0; i < 6; i++)
             {
@@ -1050,7 +918,7 @@ namespace Quixel
                 searchPos.x = center.x + (neighborMask[i].x * nodeWidth);
                 searchPos.y = center.y + (neighborMask[i].y * nodeWidth);
                 searchPos.z = center.z + (neighborMask[i].z * nodeWidth);
-                neighborNodes[i] = NodeManager.searchNode(searchPos, LOD);
+                neighborNodes[i] = manager.SearchNode(searchPos, LOD);
 
                 if (neighborNodes[i] != null && neighborNodes[i].LOD == LOD)
                     neighborNodes[i].neighborNodes[oppositeNeighbor[i]] = this;
@@ -1080,19 +948,20 @@ namespace Quixel
         /// <param name="pos"></param>
         /// <param name="width"></param>
         /// <returns></returns>
-        private bool checkRangeIntersection(Vector3 pos, float width)
+        private bool CheckRangeIntersection(Vector3 pos, float width)
         {
-            float nodeWidth = NodeManager.nodeSize * NodeManager.LODSize[LOD];
-            Vector3[] corners = new Vector3[8] {
-            new Vector3(position.x, position.y, position.z),
-            new Vector3(position.x + nodeWidth, position.y, position.z),
-            new Vector3(position.x, position.y + nodeWidth, position.z),
-            new Vector3(position.x, position.y, position.z + nodeWidth),
-            new Vector3(position.x + nodeWidth, position.y + nodeWidth, position.z),
-            new Vector3(position.x + nodeWidth, position.y, position.z + nodeWidth),
-            new Vector3(position.x, position.y + nodeWidth, position.z + nodeWidth),
-            new Vector3(position.x + nodeWidth, position.y + nodeWidth, position.z + nodeWidth),
-        };
+            float nodeWidth = manager.nodeSize * manager.LODSize[LOD];
+            Vector3[] corners = new Vector3[8] 
+            {
+                new Vector3(position.x, position.y, position.z),
+                new Vector3(position.x + nodeWidth, position.y, position.z),
+                new Vector3(position.x, position.y + nodeWidth, position.z),
+                new Vector3(position.x, position.y, position.z + nodeWidth),
+                new Vector3(position.x + nodeWidth, position.y + nodeWidth, position.z),
+                new Vector3(position.x + nodeWidth, position.y, position.z + nodeWidth),
+                new Vector3(position.x, position.y + nodeWidth, position.z + nodeWidth),
+                new Vector3(position.x + nodeWidth, position.y + nodeWidth, position.z + nodeWidth),
+            };
 
             for (int i = 0; i < 8; i++)
             {
@@ -1107,65 +976,9 @@ namespace Quixel
             return false;
         }
 
-        /// <summary>
-        /// Gets the directory of where this node should be saved.
-        /// </summary>
-        /// <returns></returns>
-        private string getDirectory()
-        {
-            if (parent == null) return NodeManager.worldName + "\\" + subNodeID.ToString();
-            return parent.getDirectory() + "\\" + subNodeID;
-        }
-
         public override string ToString()
         {
             return "LOD: " + LOD + ", Pos: " + position.ToString();
-        }
-
-        /// <summary>
-        /// Draws chunk outlines (Very buggy and laggy)
-        /// </summary>
-        /// <returns></returns>
-        public int debugDraw()
-        {
-            return 0;
-			//Debug drawing, draws the outlines of chunks, very laggy use at own risk.
-			/*
-            if (true)
-            {
-                int nodeWidth = NodeManager.nodeSize * NodeManager.LODSize[LOD];
-                if (LOD == 0) Gizmos.color = Color.red;
-                if (LOD == 1) Gizmos.color = Color.yellow;
-                if (LOD == 2) Gizmos.color = Color.white;
-                if (LOD == 3) Gizmos.color = Color.green;
-                if (LOD == 4) Gizmos.color = Color.blue;
-
-                //if(isTransitional())
-                //Gizmos.color = Color.magenta;
-
-                Gizmos.color = new Color(Gizmos.color.r, Gizmos.color.g, Gizmos.color.b, 0.5f);
-                Vector3 drawPos = new Vector3(position.x + (nodeWidth / 2), position.y + (nodeWidth / 2), position.z + (nodeWidth / 2));
-
-                //if (!isTransitional())
-                //{
-                if (LOD == 0)// && !empty)
-                {
-                    Gizmos.DrawWireCube(drawPos, new Vector3(nodeWidth, nodeWidth, nodeWidth));
-                    //}
-                    //else if(LOD == 3)
-                    //{
-                    //    Gizmos.DrawCube(drawPos, new Vector3(nodeWidth, nodeWidth, nodeWidth));
-                    //}
-                    Gizmos.DrawCube(center, new Vector3(10, 10, 10));
-                }
-            }
-
-            int ct = 1;
-            for (int i = 0; i < 8; i++)
-                if (subNodes[i] != null)
-                    ct += subNodes[i].debugDraw();
-            return ct;
-			*/
         }
     }
 }

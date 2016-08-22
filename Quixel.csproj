@@ -38,15 +38,17 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ITerrainGenerator.cs" />
+    <Compile Include="BasicGenerator\BasicTerrainController.cs" />
+    <Compile Include="BasicGenerator\TerrainData.cs" />
+    <Compile Include="IVoxelTerrainController.cs" />
     <Compile Include="MeshFactory.cs" />
-    <Compile Include="NodeEditor.cs" />
-    <Compile Include="Nodes.cs" />
-    <Compile Include="Pooling.cs" />
+    <Compile Include="NodeManager.cs" />
+    <Compile Include="ChunkPool.cs" />
     <Compile Include="QuixelEngine.cs" />
     <Compile Include="Threading.cs" />
     <Compile Include="Utilities.cs" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSHARP.Targets" />
   <ProjectExtensions>
     <VisualStudio AllowExistingFolder="true" />

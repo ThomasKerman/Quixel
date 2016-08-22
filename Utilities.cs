@@ -7,87 +7,48 @@ using System.IO;
 
 namespace Quixel
 {
-    internal class DensityData
+    public class VoxelData<T>
     {
-        #region Fields
         /// <summary> Reference to another density data that contains the change in densities used for paging. </summary>
-        private DensityData changeData;
+        private VoxelData<T> changeData;
 
-        /// <summary> Density values </summary>
-        public float[, ,] Values;
+        /// <summary> Terrain values </summary>
+        public T[, ,] Values;
 
-        /// <summary> Array of bytes that dictates which material to render </summary>
-        public byte[, ,] Materials;
-        #endregion
-
-        public DensityData()
+        /// <summary>
+        /// Creates a new instance 
+        /// </summary>
+        public VoxelData()
         {
-            Values = new float[19, 19, 19];
-            Materials = new byte[19, 19, 19];
-            for (int x = 0; x < 19; x++)
-                for (int y = 0; y < 19; y++)
-                    for (int z = 0; z < 19; z++)
-                    {
-                        Values[x, y, z] = -100000f;
-                        Materials[x, y, z] = 0;
-                    }
+            Values = new T[19, 19, 19];
         }
 
         /// <summary>
-        /// Returns the density value at the given coordinates.
+        /// Returns the terrain value at the given coordinates.
         /// </summary>
-        /// <param name="x"></param>
-        /// <param name="y"></param>
-        /// <param name="z"></param>
-        /// <returns></returns>
-        public float get(int x, int y, int z)
+        public T Get(int x, int y, int z)
         {
             if (changeData != null)
-                if (changeData.get(x, y, z) > -99999f)
-                    return changeData.get(x, y, z);
-
+                if (!changeData.Get(x, y, z).Equals(default(T)))
+                    return changeData.Get(x, y, z);
             return Values[x + 1, y + 1, z + 1];
         }
 
         /// <summary>
         /// Returns the density value at the given coordinates.
         /// </summary>
-        /// <param name="x"></param>
-        /// <param name="y"></param>
-        /// <param name="z"></param>
-        /// <returns></returns>
-        public float get(Vector3I pos)
+        public T Get(Vector3I pos)
         {
             if (changeData != null)
-                if (changeData.get(pos) > -99999f)
-                    return changeData.get(pos);
-
-            return get(pos.x, pos.y, pos.z);
-        }
-
-        /// <summary>
-        /// Returns the material index of a particular voxel
-        /// </summary>
-        /// <param name="x"></param>
-        /// <param name="y"></param>
-        /// <param name="z"></param>
-        /// <returns></returns>
-        public byte getMaterial(int x, int y, int z)
-        {
-            if (changeData != null)
-                if (changeData.getMaterial(x, y, z) != 0)
-                    return changeData.getMaterial(x, y, z);
-            return Materials[x + 1, y + 1, z + 1];
+                if (!changeData.Get(pos).Equals(default(T)))
+                    return changeData.Get(pos);
+            return Get(pos.x, pos.y, pos.z);
         }
 
         /// <summary>
         /// Sets the density value at the given coordinates.
         /// </summary>
-        /// <param name="x"></param>
-        /// <param name="y"></param>
-        /// <param name="z"></param>
-        /// <returns></returns>
-        public void set(int x, int y, int z, float val)
+        public void Set(int x, int y, int z, T val)
         {
             Values[x + 1, y + 1, z + 1] = val;
         }
@@ -95,175 +56,29 @@ namespace Quixel
         /// <summary>
         /// Sets the density value at the given coordinates.
         /// </summary>
-        /// <param name="x"></param>
-        /// <param name="y"></param>
-        /// <param name="z"></param>
-        /// <returns></returns>
-        public void set(Vector3I pos, float val)
+        public void Set(Vector3I pos, T val)
         {
-            set(pos.x, pos.y, pos.z, val);
-        }
-
-        /// <summary>
-        /// Sets the material of a particular voxel.
-        /// </summary>
-        /// <param name="x"></param>
-        /// <param name="y"></param>
-        /// <param name="z"></param>
-        /// <param name="val"></param>
-        public void setMaterial(int x, int y, int z, byte val)
-        {
-            Materials[x + 1, y + 1, z + 1] = val;
+            Set(pos.x, pos.y, pos.z, val);
         }
 
         /// <summary>
         /// Applies changes (additive) using another Density Data
         /// </summary>
         /// <param name="other"></param>
-        public void applyChanges(DensityData other)
+        public void ApplyChanges(VoxelData<T> other)
         {
             for (int x = 0; x < 19; x++)
                 for (int y = 0; y < 19; y++)
                     for (int z = 0; z < 19; z++)
-                        if (other.Values[x, y, z] > -99999f)
+                        if (!other.Values[x, y, z].Equals(default(T)))
                             Values[x, y, z] = other.Values[x, y, z];
-        }
-
-        /// <summary>
-        /// Compresses (RLE) the density data.
-        /// </summary>
-        /// <returns></returns>
-        public float[] compressDensityData()
-        {
-            List<float> data = new List<float>();
-            float last = Values[0, 0, 0];
-            data.Add(0f);
-            data.Add(last);
-
-            int count = 0;
-            for (int x = 0; x < 19; x++)
-                for (int y = 0; y < 19; y++)
-                    for (int z = 0; z < 19; z++)
-                    {
-                        count++;
-                        if (Values[x, y, z] == last)
-                        {
-                            data[data.Count - 2] = count;
-                        }
-                        else
-                        {
-                            data.Add(1f);
-                            data.Add(Values[x, y, z]);
-                            count = 1;
-                        }
-
-                        last = Values[x, y, z];
-                    }
-
-            float[] ret = new float[data.Count];
-            for (int i = 0; i < data.Count; i++)
-                ret[i] = data[i];
-
-            return ret;
-        }
-
-        /// <summary>
-        /// Compress the materials using run-length encoding.
-        /// </summary>
-        /// <returns></returns>
-        public int[] compressMaterialData()
-        {
-            List<int> data = new List<int>();
-            int last = Materials[0, 0, 0];
-            data.Add(0);
-            data.Add(last);
-
-            int count = 0;
-            for (int x = 0; x < 19; x++)
-                for (int y = 0; y < 19; y++)
-                    for (int z = 0; z < 19; z++)
-                    {
-                        count++;
-                        if (Materials[x, y, z] == last)
-                        {
-                            data[data.Count - 2] = count;
-                        }
-                        else
-                        {
-                            data.Add(1);
-                            data.Add(Materials[x, y, z]);
-                            count = 1;
-                        }
-
-                        last = Materials[x, y, z];
-                    }
-
-            int[] ret = new int[data.Count];
-            for (int i = 0; i < data.Count; i++)
-                ret[i] = data[i];
-
-            return ret;
-        }
-
-        /// <summary>
-        /// Decompresses a sparse array of densities.
-        /// </summary>
-        /// <param name="data"></param>
-        public void decompressDensityData(float[] data)
-        {
-            int total = 0;
-            int index = 0;
-            int count = 0;
-            for (int x = 0; x < 19; x++)
-                for (int y = 0; y < 19; y++)
-                    for (int z = 0; z < 19; z++)
-                    {
-                        total++;
-
-                        if (count >= data[index])
-                        {
-                            count = 0;
-                            index += 2;
-                        }
-
-                        count++;
-
-                        Values[x, y, z] = data[index + 1];
-                    }
-        }
-
-        /// <summary>
-        /// Decompresses a compressed array of materials.
-        /// </summary>
-        /// <param name="data"></param>
-        public void decompressMaterialData(int[] data)
-        {
-            int total = 0;
-            int index = 0;
-            int count = 0;
-            for (int x = 0; x < 19; x++)
-                for (int y = 0; y < 19; y++)
-                    for (int z = 0; z < 19; z++)
-                    {
-                        total++;
-
-                        if (count >= data[index])
-                        {
-                            count = 0;
-                            index += 2;
-                        }
-
-                        count++;
-
-                        Materials[x, y, z] = (byte)data[index + 1];
-                    }
         }
 
         /// <summary>
         /// Sets the change data for this density array.
         /// Values are pulled from here if available.
         /// </summary>
-        public void setChangeData(DensityData data)
+        public void SetChangeData(VoxelData<T> data)
         {
             changeData = data;
         }
@@ -271,16 +86,16 @@ namespace Quixel
         /// <summary>
         /// Disposes of the density array.
         /// </summary>
-        public void dispose()
+        public void Dispose()
         {
             for (int x = 0; x < 19; x++)
                 for (int y = 0; y < 19; y++)
                     for (int z = 0; z < 19; z++)
-                        Values[x, y, z] = -100000f;
+                        Values[x, y, z] = default(T);
         }
     }
 
-    internal struct Triangle
+    public struct Triangle
     {
         public Vector3 pointOne, pointTwo, pointThree;
         public Vector3 nOne, nTwo, nThree;
@@ -306,7 +121,7 @@ namespace Quixel
         }
     }
 
-    internal struct Vector3I
+    public struct Vector3I
     {
         public int x;
         public int y;
@@ -374,7 +189,7 @@ namespace Quixel
         }
     }
 
-    internal class MeshData
+    public class MeshData
     {
         public Vector3[] triangleArray;
         public Vector2[] uvArray;
@@ -384,7 +199,7 @@ namespace Quixel
         /// <summary>
         /// Disposes the meshdata.
         /// </summary>
-        public void dispose()
+        public void Dispose()
         {
             triangleArray = null;
             uvArray = null;

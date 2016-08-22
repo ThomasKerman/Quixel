@@ -7,11 +7,46 @@ using System.IO;
 
 namespace Quixel
 {
-    public static class QuixelEngine
+    /// <summary>
+    /// A terrain generator that uses voxels and marching cubes
+    /// </summary>
+    /// <typeparam name="T">The type of the data assigned to each voxel</typeparam>
+    public class QuixelEngine<T>
     {
-        public static Material[] materials;
-        private static GameObject cameraObj;
-        private static bool active = true;
+        /// <summary>
+        /// The name of the world
+        /// </summary>
+        public String WorldName { get; set; }
+
+        /// <summary>
+        /// Whether the engine is active
+        /// </summary>
+        private Boolean _active { get; set; }
+
+        /// <summary>
+        /// The terrain controller
+        /// </summary>
+        public IVoxelTerrainController<T> controller { get; private set; }
+
+        /// <summary>
+        /// The parent object of the terrain
+        /// </summary>
+        public GameObject TerrainObject { get; }
+
+        /// <summary>
+        /// The player object that is used to determine the position for LOD
+        /// </summary>
+        public GameObject PlayerObject { get; private set; }
+
+        /// <summary>
+        /// The maximum LOD for the voxel
+        /// </summary>
+        public Int32 MaxLOD { get; set; }
+
+        // Managers
+        public MeshFactory<T> meshFactory;
+        public NodeManager<T> nodeManager;
+        public ChunkPool<T> chunkPool;
 
         /// <summary>
         /// Initializes the Quixel Engine
@@ -19,15 +54,15 @@ namespace Quixel
         /// <param name="mats">Array of materials.</param>
         /// <param name="terrainObj">Parent terrain object. (empty)</param>
         /// <param name="worldName">Name of the world. Used for paging. (empty)</param>
-        public static void init(Material[] mats, GameObject terrainObj, string worldName)
+        public QuixelEngine(GameObject terrainObject, String name)
         {
-            MeshFactory.terrainObj = terrainObj;
+            TerrainObject = terrainObject;
+            WorldName = name;
 
-            materials = mats;
-            Debug.Log("Materials: " + mats.Length);
-            DensityPool.init();
-            MeshFactory.start();
-            NodeManager.init(worldName);
+            // Manager
+            meshFactory = new MeshFactory<T>(this);
+            nodeManager = new NodeManager<T>(this);
+            chunkPool = new ChunkPool<T>(this);
         }
 
         /// <summary>
@@ -35,65 +70,58 @@ namespace Quixel
         /// The width of a single voxel will be 2^(size + LOD)
         /// </summary>
         /// <param name="size">The size (units).</param>
-        public static void setVoxelSize(int size, int maxLOD)
+        public void SetVoxelSize(int size, int maxLOD)
         {
-            NodeManager.maxLOD = maxLOD;
-            NodeManager.nodeCount = new int[maxLOD+1];
-            NodeManager.LODSize = new int[maxLOD+1];
-            for (int i = 0; i <= maxLOD; i++)
+            MaxLOD = maxLOD;
+            nodeManager.nodeCount = new int[MaxLOD+1];
+            nodeManager.LODSize = new int[MaxLOD+1];
+            for (int i = 0; i <= MaxLOD; i++)
             {
-                NodeManager.LODSize[i] = (int)Mathf.Pow(2, i + size);
+                nodeManager.LODSize[i] = (int)Mathf.Pow(2, i + size);
             }
         }
 		
 		/// <summary>
         /// Sets the terrain generator to use when generating terrain.
         /// </summary>
-		public static void setTerrainGenerator(IGenerator gen)
+		public void SetTerrainController(IVoxelTerrainController<T> gen)
 		{
-			MeshFactory.terrainGenerator = gen;
+            controller = gen;
 		}
 		
         /// <summary>
         /// Updates the Quixel system. Should be called every step.
         /// </summary>
-        public static void update()
+        public void Update()
         {
-            DensityPool.update();
-            MeshFactory.update();
-
-            if (cameraObj != null)
-                NodeManager.setViewPosition(cameraObj.transform.position);
-
-            if (!Application.isPlaying)
-                active = false;
+            meshFactory.Update();
+            if (PlayerObject != null)
+                nodeManager.SetViewPosition(PlayerObject.transform.position);
+            _active = Application.isPlaying;
         }
 
         /// <summary>
         /// Sets the object to follow for the LOD system.
         /// </summary>
-        /// <param name="obj"></param>
-        public static void setCameraObj(GameObject obj)
+        public void SetCameraObj(GameObject obj)
         {
-            cameraObj = obj;
+            PlayerObject = obj;
         }
 
         /// <summary>
         /// Returns true if the player is still active.
         /// </summary>
-        /// <returns></returns>
-        public static bool isActive()
+        public bool IsActive()
         {
-            return active;
+            return _active;
         }
 
         /// <summary>
         /// Terminates the engine.
         /// </summary>
-        /// <returns></returns>
-        public static void terminate()
+        public void Terminate()
         {
-            active = false;
+            _active = false;
         }
     }
 }

@@ -10,109 +10,97 @@ namespace Quixel
 	/// <summary>
     /// Controls mesh generation (threaded)
     /// </summary>
-    internal static class MeshFactory
+    public class MeshFactory<T>
     {
-        #region Fields
-        public static IGenerator terrainGenerator = new BasicTerrain();
-        public static float isolevel = 5f;
+        public QuixelEngine<T> Engine { get; }
+        public float isolevel = 5f;
 
-        public static Queue<MeshRequest> setMeshQueue = new Queue<MeshRequest>();
-        public static GeneratorThread[] generatorThreads = new GeneratorThread[4];
-        public static FileThread fileThread;
+        public Queue<MeshRequest<T>> setMeshQueue = new Queue<MeshRequest<T>>();
+        public GeneratorThread<T>[] generatorThreads = new GeneratorThread<T>[4];
+        public Queue<MeshRequest<T>>[] requestArray;
 
-        //[DEBUG] used to keep track of debug info
-        public static int requestNum = 0;
-        public static int threadNum = 0;
-        public static int chunksFinished = 0;
-        public static int nodesSaved = 0;
-        public static int nodesLoaded = 0;
+        public int requestNum = 0;
+        public int threadNum = 0;
+        public int chunksFinished = 0;
+        public int nodesSaved = 0;
+        public int nodesLoaded = 0;
 
-        public static GameObject chunkObj;
-        public static GameObject terrainObj;
-        #endregion
+        /// <summary>
+        /// The object used for a chunk
+        /// </summary>
+        public GameObject chunkObj;
 
-        public static void start()
+        /// <summary>
+        /// The parental terrain GameObject
+        /// </summary>
+        public GameObject terrainObj;
+
+        /// <summary>
+        /// Creates a new MeshFactory using a QuixelSystem
+        /// </summary>
+        public MeshFactory(QuixelEngine<T> engine)
         {
+            // Engine
+            Engine = engine;
+            terrainObj = Engine.TerrainObject;
+
+            // Create the chunk prefab
             chunkObj = new GameObject();
             chunkObj.AddComponent<MeshFilter>();
             chunkObj.AddComponent<MeshRenderer>();
             chunkObj.AddComponent<MeshCollider>();
 
+            // Arrays
+            generatorThreads = new GeneratorThread<T>[4];
+            requestArray = new Queue<MeshRequest<T>>[Engine.MaxLOD + 2];
             for (int i = 0; i < requestArray.Length; i++)
-                requestArray[i] = new Queue<MeshRequest>();
+                requestArray[i] = new Queue<MeshRequest<T>>();
             for (int i = 0; i < generatorThreads.Length; i++)
-                generatorThreads[i] = new GeneratorThread();
-            fileThread = new FileThread();
+                generatorThreads[i] = new GeneratorThread<T>(Engine);
         }
 
-        public static void update()
+        /// <summary>
+        /// Updates the mesh requests
+        /// </summary>
+        public void Update()
         {
             if (setMeshQueue.Count > 0)
             {
-                MeshRequest req = setMeshQueue.Dequeue();
-                req.node.setMesh(req.meshData);
+                MeshRequest<T> req = setMeshQueue.Dequeue();
+                req.node.SetMesh(req.meshData);
             }
 
             for (int i = 0; i < generatorThreads.Length; i++)
             {
-                MeshRequest req;
-                while ((req = generatorThreads[i].getFinishedMesh()) != null)
+                MeshRequest<T> req;
+                while ((req = generatorThreads[i].GetFinishedMesh()) != null)
                 {
                     chunksFinished++;
                     if (req.node.disposed == false)
                     {
-                        req.node.densityData = req.densities;
+                        req.node.data = req.terrainData;
                         if (req.meshData.triangleArray.Length > 0)
                             setMeshQueue.Enqueue(req);
                         else
-                            req.node.setMesh(req.meshData);
+                            req.node.SetMesh(req.meshData);
                     }
                 }
             }
-
-            #region Save/Load threads
-            Node node;
-            while ((node = fileThread.getFinishedLoadRequest()) != null)
-            { node.regenerateChunk(); nodesLoaded++; }
-            #endregion
         }
-
-        #region Node Saving/Loading
-        /// <summary>
-        /// Adds a node to the save queue.
-        /// </summary>
-        /// <param name="node"></param>
-        public static void requestSave(Node node)
-        {
-            fileThread.enqueueSave(node);
-        }
-
-        /// <summary>
-        /// Adds a node to the save queue.
-        /// </summary>
-        /// <param name="node"></param>
-        public static void requestLoad(Node node)
-        {
-            fileThread.enqueueLoad(node);
-        }
-        #endregion
-
-        #region Mesh Requests
-        public static Queue<MeshRequest>[] requestArray = new Queue<MeshRequest>[NodeManager.maxLOD + 2];
 
         /// <summary>
         /// Adds a request to generate a mesh
         /// </summary>
         /// <param name="_node">The node the mesh is for</param>
-        public static void requestMesh(Node _node)
+        public void RequestMesh(Node<T> _node)
         {
-            MeshRequest req = new MeshRequest
+            MeshRequest<T> req = new MeshRequest<T>
             {
                 node = _node,
                 pos = _node.position,
                 LOD = _node.LOD,
                 isDone = false,
-                hasDensities = (_node.densityData != null)
+                hasDensities = (_node.data != null)
             };
 
             if (!req.hasDensities)
@@ -127,16 +115,16 @@ namespace Quixel
         /// Returns the next logical mesh to generate.
         /// </summary>
         /// <returns></returns>
-        public static MeshRequest[] getNextRequests()
+        public MeshRequest<T>[] GetNextRequests()
         {
-            int size = Math.Min(10, getRequestCount());
-            MeshRequest[] ret = new MeshRequest[size];
+            int size = Math.Min(10, GetRequestCount());
+            MeshRequest<T>[] ret = new MeshRequest<T>[size];
 
             lock (requestArray)
             {
                 for (int i = 0; i < ret.Length; i++)
                 {
-                    ret[i] = getNextRequest();
+                    ret[i] = GetNextRequest();
                 }
             }
 
@@ -147,7 +135,7 @@ namespace Quixel
         /// Returns the next request.
         /// </summary>
         /// <returns></returns>
-        public static MeshRequest getNextRequest()
+        public MeshRequest<T> GetNextRequest()
         {
             for (int o = 0; o < requestArray.Length; o++)
             {
@@ -155,7 +143,6 @@ namespace Quixel
                     lock (requestArray[o])
                         return requestArray[o].Dequeue();
             }
-
             return null;
         }
 
@@ -163,34 +150,34 @@ namespace Quixel
         /// Returns a count of all remaining mesh requests.
         /// </summary>
         /// <returns></returns>
-        public static int getRequestCount()
+        public int GetRequestCount()
         {
             int ret = 0;
             for (int i = 0; i < requestArray.Length; i++)
             {
                 ret += requestArray[i].Count;
             }
-
             return ret;
         }
-
-        public class MeshRequest
+        
+        /// <summary>
+        /// A changeset for a mesh
+        /// </summary>
+        public class MeshRequest<TMesh>
         {
             public int LOD;
             public Vector3 pos;
-            public Node node;
+            public Node<TMesh> node;
             public bool isDone;
             public bool hasDensities;
             public MeshData meshData;
-            public DensityData densities;
+            public VoxelData<TMesh> terrainData;
         }
-        #endregion
-
-        #region Threaded Generation
+        
         /// <summary>
         /// Generates the mesh data
         /// </summary>
-        public static void GenerateMeshData(MeshRequest request)
+        public void GenerateMeshData(MeshRequest<T> request)
         {
             MeshData meshData = new MeshData();
             request.meshData = meshData;
@@ -206,13 +193,13 @@ namespace Quixel
                 return;
             }
 
-            DensityData densityArray = request.densities;
+            VoxelData<T> terrainArray = request.terrainData;
 
             Vector3[, ,] densityNormals = new Vector3[17, 17, 17];
             List<Triangle> triangleList = new List<Triangle>();
             List<int> subMeshIDList = new List<int>();
-            int[] subMeshTriCount = new int[QuixelEngine.materials.Length];
-            Node node = request.node;
+            int[] subMeshTriCount = new int[Engine.controller.GetMaterialCount()];
+            Node<T> node = request.node;
             request.meshData = meshData;
 
             //Unoptimized generation
@@ -225,9 +212,8 @@ namespace Quixel
                     {
                         for (int z = -1; z < 18; z++)
                         {
-                            VoxelData data = calculateDensity(node, new Vector3I(x, y, z));
-                            densityArray.set(x, y, z, data.density);
-                            densityArray.setMaterial(x, y, z, data.material);
+                            T data = BuildVoxelData(node, new Vector3I(x, y, z));
+                            terrainArray.Set(x, y, z, data);
                         }
                     }
                 }
@@ -239,7 +225,7 @@ namespace Quixel
                 {
                     for (int z = 0; z < 17; z++)
                     {
-                        densityNormals[x, y, z] = calculateDensityNormal(new Vector3I(x, y, z), densityArray, node.LOD);
+                        densityNormals[x, y, z] = CalculateDensityNormal(new Vector3I(x, y, z), terrainArray, node.LOD);
                     }
                 }
             }
@@ -249,7 +235,7 @@ namespace Quixel
                 {
                     for (int z = 0; z < 16; z++)
                     {
-                        generateTriangles(node, new Vector3I(x, y, z), triangleList, subMeshIDList, subMeshTriCount, densityArray, densityNormals);
+                        GenerateTriangles(node, new Vector3I(x, y, z), triangleList, subMeshIDList, subMeshTriCount, terrainArray, densityNormals);
                     }
                 }
             }
@@ -258,14 +244,14 @@ namespace Quixel
             try
             {
                 meshData.triangleArray = new Vector3[triangleList.Count * 3];
-                meshData.indexArray = new int[QuixelEngine.materials.Length][];
-                for (int i = 0; i < QuixelEngine.materials.Length; i++)
+                meshData.indexArray = new int[Engine.controller.GetMaterialCount()][];
+                for (int i = 0; i < meshData.indexArray.Length; i++)
                     meshData.indexArray[i] = new int[(subMeshTriCount[i] * 3) * 3];
                 meshData.uvArray = new Vector2[meshData.triangleArray.Length];
                 meshData.normalArray = new Vector3[meshData.triangleArray.Length];
 
                 int count = 0;
-                int[] indCount = new int[QuixelEngine.materials.Length];
+                int[] indCount = new int[Engine.controller.GetMaterialCount()];
                 for (int i = 0; i < triangleList.Count; i++)
                 {
                     ppos = i;
@@ -293,13 +279,7 @@ namespace Quixel
             }
             catch (Exception e)
             {
-                StreamWriter sw = new StreamWriter("Error Log.txt");
-                sw.WriteLine(e.Message + "\r\n" + e.StackTrace);
-                for (int i = 0; i < QuixelEngine.materials.Length; i++)
-                    sw.WriteLine(i + ": " + subMeshTriCount[i]);
-                sw.WriteLine(ppos);
-                sw.WriteLine(li);
-                sw.Close();
+                Debug.Log(e.Message + "\r\n" + e.StackTrace);
             }
             request.isDone = true;
         }
@@ -307,20 +287,15 @@ namespace Quixel
         /// <summary>
         /// Calculates a density value given a location
         /// </summary>
-        /// <param name="node"></param>
-        /// <param name="pos"></param>
-        /// <returns></returns>
-        private static VoxelData calculateDensity(Node node, Vector3I pos)
+        private T BuildVoxelData(Node<T> node, Vector3I pos)
         {
-            int nodeWidth = NodeManager.LODSize[node.LOD];
+            int nodeWidth = node.manager.LODSize[node.LOD];
             Vector3 ws = new Vector3(node.position.x + (nodeWidth * pos.x),
                 node.position.y + (nodeWidth * pos.y),
                 node.position.z + (nodeWidth * pos.z));
-
-            return terrainGenerator.calculateDensity(ws);
+            return Engine.controller.BuildVoxelData(ws);
         }
 
-        #region Marching Cubes
         /// <summary>
         /// Generates the triangles for a specific voxel
         /// </summary>
@@ -329,19 +304,20 @@ namespace Quixel
         /// <param name="triangleList">The list used to contain triangles made so far</param>
         /// <param name="densities">The array that contains density information</param>
         /// <param name="densityNormals">The array that contains density normals</param>
-        private static void generateTriangles(Node node, Vector3I pos, List<Triangle> triangleList, List<int> submeshIDList, int[] subMeshTriCount, DensityData densities, Vector3[, ,] densityNormals)
+        private void GenerateTriangles(Node<T> node, Vector3I pos, List<Triangle> triangleList, List<int> submeshIDList, int[] subMeshTriCount, VoxelData<T> densities, Vector3[, ,] densityNormals)
         {
-            float size = NodeManager.LODSize[node.LOD];
+            float size = node.manager.LODSize[node.LOD];
+            Func<T, Single> extract = Engine.controller.ExtractDensity;
 
             float[] denses = new float[8];
-            denses[0] = densities.get(pos.x, pos.y, pos.z + 1);
-            denses[1] = densities.get(pos.x + 1, pos.y, pos.z + 1);
-            denses[2] = densities.get(pos.x + 1, pos.y, pos.z);
-            denses[3] = densities.get(pos.x, pos.y, pos.z);
-            denses[4] = densities.get(pos.x, pos.y + 1, pos.z + 1);
-            denses[5] = densities.get(pos.x + 1, pos.y + 1, pos.z + 1);
-            denses[6] = densities.get(pos.x + 1, pos.y + 1, pos.z);
-            denses[7] = densities.get(pos.x, pos.y + 1, pos.z);
+            denses[0] = extract(densities.Get(pos.x, pos.y, pos.z + 1));
+            denses[1] = extract(densities.Get(pos.x + 1, pos.y, pos.z + 1));
+            denses[2] = extract(densities.Get(pos.x + 1, pos.y, pos.z));
+            denses[3] = extract(densities.Get(pos.x, pos.y, pos.z));
+            denses[4] = extract(densities.Get(pos.x, pos.y + 1, pos.z + 1));
+            denses[5] = extract(densities.Get(pos.x + 1, pos.y + 1, pos.z + 1));
+            denses[6] = extract(densities.Get(pos.x + 1, pos.y + 1, pos.z));
+            denses[7] = extract(densities.Get(pos.x, pos.y + 1, pos.z));
 
             byte cubeIndex = 0;
 
@@ -405,7 +381,7 @@ namespace Quixel
             if (IsBitSet(edgeTable[cubeIndex], 2048))
                 vertlist[11] = VertexInterp(isolevel, positions[3], positions[7], denses[3], denses[7], densityNormals[pos.x, pos.y, pos.z], densityNormals[pos.x, pos.y + 1, pos.z]);
 
-            int submesh = densities.getMaterial(pos.x, pos.y, pos.z);
+            int submesh = Engine.controller.ExtractMaterial(densities.Get(pos.x, pos.y, pos.z));
             for (int i = 0; triTable[cubeIndex][i] != -1; i += 3)
             {
                 submeshIDList.Add(submesh);
@@ -424,7 +400,7 @@ namespace Quixel
         /// <param name="valp1">Value Position One</param>
         /// <param name="valp2">Value Position Two</param>
         /// <returns></returns>
-        private static Vector3[] VertexInterp(float isolevel, Vector3 p1, Vector3 p2, float valp1, float valp2, Vector3 n1, Vector3 n2)
+        private Vector3[] VertexInterp(float isolevel, Vector3 p1, Vector3 p2, float valp1, float valp2, Vector3 n1, Vector3 n2)
         {
             float mu;
             Vector3[] p = new Vector3[2];
@@ -473,16 +449,16 @@ namespace Quixel
         /// Calculates the normal.
         /// </summary>
         /// <param name="p"></param>
-        private static Vector3 calculateDensityNormal(Vector3I p, DensityData densities, int lod)
+        private Vector3 CalculateDensityNormal(Vector3I p, VoxelData<T> densities, int lod)
         {
             Vector3 normal = new Vector3();
-            normal.x = (densities.get(p.x + 1, p.y, p.z) - densities.get(p.x - 1, p.y, p.z)) / (NodeManager.LODSize[lod]);
-            normal.y = (densities.get(p.x, p.y + 1, p.z) - densities.get(p.x, p.y - 1, p.z)) / (NodeManager.LODSize[lod]);
-            normal.z = (densities.get(p.x, p.y, p.z + 1) - densities.get(p.x, p.y, p.z - 1)) / (NodeManager.LODSize[lod]);
+            Func<T, Single> extract = Engine.controller.ExtractDensity;
+            normal.x = (extract(densities.Get(p.x + 1, p.y, p.z)) - extract(densities.Get(p.x - 1, p.y, p.z))) / (Engine.nodeManager.LODSize[lod]);
+            normal.y = (extract(densities.Get(p.x, p.y + 1, p.z)) - extract(densities.Get(p.x, p.y - 1, p.z))) / (Engine.nodeManager.LODSize[lod]);
+            normal.z = (extract(densities.Get(p.x, p.y, p.z + 1)) - extract(densities.Get(p.x, p.y, p.z - 1))) / (Engine.nodeManager.LODSize[lod]);
             normal.Normalize();
             return normal;
         }
-        #endregion
 
         #region Lookup Table A
         static int[] edgeTable = new int[256] {
@@ -780,23 +756,5 @@ namespace Quixel
 			new int[] {0, 3, 8, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
 			new int[] {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1}};
         #endregion
-        #endregion
-
-        /// <summary>
-        /// Used to draw information about mesh generation.
-        /// </summary>
-        public static void debugDraw()
-        {
-            GUILayout.Label("Requests: " + getRequestCount());
-            //GUILayout.Label("Threads: " + threadList.Count);
-            //GUILayout.Label("Active: " + activeRequests.Count);
-            GUILayout.Label("Finished: " + chunksFinished);
-            GUILayout.Label("Free Game Objects: " + ChunkPool.chunkList.Count);
-            GUILayout.Label("Total Game Objects: " + ChunkPool.totalCreated);
-            //GUILayout.Label("Saves Queued: " + saveQueue.Count);
-            GUILayout.Label("Nodes Saved: " + nodesSaved);
-            //GUILayout.Label("Loads Queued: " + loadQueue.Count);
-            GUILayout.Label("Nodes Loaded: " + nodesLoaded);
-        }
     }
 }
