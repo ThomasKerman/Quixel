@@ -627,19 +627,19 @@ namespace Quixel
         public bool ContainsDensityPoint(Vector3 pos)
         {
             float chunkWidth = manager.LODSize[LOD] * manager.nodeSize;
-			Vector3 corner1 = new Vector3(position.x - manager.LODSize[LOD],
-										position.y - manager.LODSize[LOD],
-										position.z - manager.LODSize[LOD]);
-										
-			Vector3 corner2 = new Vector3(position.x + chunkWidth + manager.LODSize[LOD],
-										position.y + chunkWidth + manager.LODSize[LOD],
-										position.z + chunkWidth + manager.LODSize[LOD]);
-										
-			if((pos.x >= corner1.x && pos.y >= corner1.y && pos.z >= corner1.z) &&
-				(pos.x <= corner2.x && pos.y <= corner2.y && pos.z <= corner2.z)) {
-				return true;
-			}
-			
+            Vector3 corner1 = new Vector3(position.x - manager.LODSize[LOD],
+                                        position.y - manager.LODSize[LOD],
+                                        position.z - manager.LODSize[LOD]);
+                                        
+            Vector3 corner2 = new Vector3(position.x + chunkWidth + manager.LODSize[LOD],
+                                        position.y + chunkWidth + manager.LODSize[LOD],
+                                        position.z + chunkWidth + manager.LODSize[LOD]);
+                                        
+            if((pos.x >= corner1.x && pos.y >= corner1.y && pos.z >= corner1.z) &&
+                (pos.x <= corner2.x && pos.y <= corner2.y && pos.z <= corner2.z)) {
+                return true;
+            }
+            
             return false;
         }
 
