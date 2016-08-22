@@ -293,7 +293,7 @@ namespace Quixel
             Vector3 ws = new Vector3(node.position.x + (nodeWidth * pos.x),
                 node.position.y + (nodeWidth * pos.y),
                 node.position.z + (nodeWidth * pos.z));
-            return Engine.controller.BuildVoxelData(ws);
+            return Engine.controller.BuildVoxelData(Engine.TerrainObject.transform.position, ws);
         }
 
         /// <summary>

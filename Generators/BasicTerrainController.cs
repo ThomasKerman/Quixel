@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using UnityEngine;
 
-namespace Quixel.BasicGenerator
+namespace Quixel
 {
     /// <summary>
     /// Terrain Controller implementation that creates a 50m high terrain and that 
@@ -29,7 +29,7 @@ namespace Quixel.BasicGenerator
         /// Builds the voxel terrain data for a given position
         /// </summary>
         /// <param name="pos">The (real world) position</param>
-        public override TerrainData BuildVoxelData(Vector3 pos)
+        public override TerrainData BuildVoxelData(Vector3 center, Vector3 pos)
         {
             TerrainData data = new TerrainData()
             {

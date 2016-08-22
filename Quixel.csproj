@@ -38,8 +38,9 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="BasicGenerator\BasicTerrainController.cs" />
-    <Compile Include="BasicGenerator\TerrainData.cs" />
+    <Compile Include="Generators\BasicTerrainController.cs" />
+    <Compile Include="Generators\TerrainData.cs" />
+    <Compile Include="Generators\LimitedGenerator.cs" />
     <Compile Include="VoxelTerrainController.cs" />
     <Compile Include="MeshFactory.cs" />
     <Compile Include="NodeManager.cs" />

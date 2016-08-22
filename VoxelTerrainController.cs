@@ -13,7 +13,7 @@ namespace Quixel
         /// Builds the voxel terrain data for a given position
         /// </summary>
         /// <param name="pos">The (real world) position</param>
-        public abstract T BuildVoxelData(Vector3 pos);
+        public abstract T BuildVoxelData(Vector3 center, Vector3 pos);
 
         /// <summary>
         /// Extracts the density from the voxel terrain data

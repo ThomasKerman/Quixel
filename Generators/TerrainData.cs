@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace Quixel.BasicGenerator
+namespace Quixel
 {
     /// <summary>
     /// The data that is stored in a voxel
