@@ -33,7 +33,7 @@ namespace Quixel
         {
             TerrainData data = new TerrainData()
             {
-                density = pos.y - 50f,
+                density = pos.y +  50f,
                 materialIndex = 0
             };
             return data;
@@ -44,7 +44,7 @@ namespace Quixel
         /// </summary>
         public override Single ExtractDensity(TerrainData data)
         {
-            return -data.density;
+            return data.density;
         }
 
         /// <summary>

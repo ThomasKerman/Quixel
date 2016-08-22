@@ -47,7 +47,7 @@ namespace Quixel
             Single zz = Mathf.Abs(center.z - pos.z);
             TerrainData data = new TerrainData()
             {
-                density = (xx <= x || yy <= y || zz <= z) ? 100f : -100f,
+                density = (xx <= x || yy <= y || zz <= z) ? -100f : 100f,
                 materialIndex = 0
             };
             return data;

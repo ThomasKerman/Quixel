@@ -668,11 +668,10 @@ namespace Quixel
                     {
                         if (subNodes[i] != null && !subNodes[i].hasMesh)
                         {
+                            manager.Engine.controller.SetRenderState(this, true);
                             SetRenderType(RenderType.FRONT);
                         }
                     }
-                    if (chunk != null)
-                        manager.Engine.controller.SetRenderState(this, false);
                 }
             }
         }
