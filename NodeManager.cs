@@ -899,6 +899,8 @@ namespace Quixel
                     neighborNodes[i].neighborNodes[oppositeNeighbor[i]] = null;
                 }
             }
+
+            manager.Engine.controller.DisposeVoxelData(this);
         }
 
         /// <summary>
