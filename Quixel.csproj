@@ -40,7 +40,7 @@
   <ItemGroup>
     <Compile Include="BasicGenerator\BasicTerrainController.cs" />
     <Compile Include="BasicGenerator\TerrainData.cs" />
-    <Compile Include="IVoxelTerrainController.cs" />
+    <Compile Include="VoxelTerrainController.cs" />
     <Compile Include="MeshFactory.cs" />
     <Compile Include="NodeManager.cs" />
     <Compile Include="ChunkPool.cs" />

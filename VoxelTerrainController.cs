@@ -7,47 +7,47 @@ using System.IO;
 
 namespace Quixel
 {
-    public interface IVoxelTerrainController<T>
+    public abstract class VoxelTerrainController<T>
     {
         /// <summary>
         /// Builds the voxel terrain data for a given position
         /// </summary>
         /// <param name="pos">The (real world) position</param>
-        T BuildVoxelData(Vector3 pos);
+        public abstract T BuildVoxelData(Vector3 pos);
 
         /// <summary>
         /// Extracts the density from the voxel terrain data
         /// </summary>
-        Single ExtractDensity(T data);
+        public abstract Single ExtractDensity(T data);
 
         /// <summary>
         /// Extracts the material from the voxel terrain data
         /// </summary>
-        Int32 ExtractMaterial(T data);
+        public abstract Int32 ExtractMaterial(T data);
 
         /// <summary>
         /// Extracts the color from the voxel terrain data
         /// </summary>
-        Color ExtractColor(T data);
+        public abstract Color ExtractColor(T data);
 
         /// <summary>
         /// Returns the maximum amount of materials available.
         /// </summary>
-        Int32 GetMaterialCount();
+        public abstract Int32 GetMaterialCount();
 
         /// <summary>
         /// Applies the voxel mesh to the chunk
         /// </summary>
-        void ApplyVoxelData(Mesh mesh, Node<T> node);
+        public abstract void ApplyVoxelData(Mesh mesh, Node<T> node);
 
         /// <summary>
         /// Destroys the voxel mesh of the chunk
         /// </summary>
-        void DisposeVoxelData(Node<T> node);
+        public abstract void DisposeVoxelData(Node<T> node);
 
         /// <summary>
         /// Defines whether the node should be rendered
         /// </summary>
-        void SetRenderState(Node<T> node, Boolean state);
+        public abstract void SetRenderState(Node<T> node, Boolean state);
     }
 }

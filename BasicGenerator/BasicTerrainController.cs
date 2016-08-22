@@ -10,7 +10,7 @@ namespace Quixel.BasicGenerator
     /// Terrain Controller implementation that creates a 50m high terrain and that 
     /// uses standalone MeshRendering
     /// </summary>
-    public class BasicTerrainController : IVoxelTerrainController<TerrainData>
+    public class BasicTerrainController : VoxelTerrainController<TerrainData>
     {
         /// <summary>
         /// The materials for the terrain
@@ -29,7 +29,7 @@ namespace Quixel.BasicGenerator
         /// Builds the voxel terrain data for a given position
         /// </summary>
         /// <param name="pos">The (real world) position</param>
-        public TerrainData BuildVoxelData(Vector3 pos)
+        public override TerrainData BuildVoxelData(Vector3 pos)
         {
             TerrainData data = new TerrainData()
             {
@@ -42,7 +42,7 @@ namespace Quixel.BasicGenerator
         /// <summary>
         /// Extracts the density from the voxel terrain data
         /// </summary>
-        public Single ExtractDensity(TerrainData data)
+        public override Single ExtractDensity(TerrainData data)
         {
             return -data.density;
         }
@@ -50,7 +50,7 @@ namespace Quixel.BasicGenerator
         /// <summary>
         /// Extracts the material from the voxel terrain data
         /// </summary>
-        public Int32 ExtractMaterial(TerrainData data)
+        public override Int32 ExtractMaterial(TerrainData data)
         {
             return data.materialIndex;
         }
@@ -58,7 +58,7 @@ namespace Quixel.BasicGenerator
         /// <summary>
         /// Extracts the color from the voxel terrain data
         /// </summary>
-        public Color ExtractColor(TerrainData data)
+        public override Color ExtractColor(TerrainData data)
         {
             return Color.clear;
         }
@@ -66,7 +66,7 @@ namespace Quixel.BasicGenerator
         /// <summary>
         /// Returns the maximum amount of materials available.
         /// </summary>
-        public Int32 GetMaterialCount()
+        public override Int32 GetMaterialCount()
         {
             return Materials.Length;
         }
@@ -74,7 +74,7 @@ namespace Quixel.BasicGenerator
         /// <summary>
         /// Applies the voxel mesh to the chunk
         /// </summary>
-        public void ApplyVoxelData(Mesh mesh, Node<TerrainData> node)
+        public override void ApplyVoxelData(Mesh mesh, Node<TerrainData> node)
         {
             if (node.chunk == null)
             {
@@ -89,11 +89,11 @@ namespace Quixel.BasicGenerator
             if (node.LOD == 0 && node.collides)
                 node.chunk.GetComponent<MeshCollider>().sharedMesh = mesh;
         }
-        
+
         /// <summary>
         /// Destroys the voxel mesh of the chunk
         /// </summary>
-        public void DisposeVoxelData(Node<TerrainData> node)
+        public override void DisposeVoxelData(Node<TerrainData> node)
         {
             if (node.chunk != null)
             {
@@ -111,7 +111,7 @@ namespace Quixel.BasicGenerator
         /// <summary>
         /// Defines whether the node should be rendered
         /// </summary>
-        public void SetRenderState(Node<TerrainData> node, Boolean state)
+        public override void SetRenderState(Node<TerrainData> node, Boolean state)
         {
             node.chunk.GetComponent<Renderer>().enabled = state;
         }

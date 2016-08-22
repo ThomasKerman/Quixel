@@ -26,7 +26,7 @@ namespace Quixel
         /// <summary>
         /// The terrain controller
         /// </summary>
-        public IVoxelTerrainController<T> controller { get; private set; }
+        public VoxelTerrainController<T> controller { get; private set; }
 
         /// <summary>
         /// The parent object of the terrain
@@ -84,7 +84,7 @@ namespace Quixel
         /// <summary>
         /// Sets the terrain generator to use when generating terrain.
         /// </summary>
-        public void SetTerrainController(IVoxelTerrainController<T> gen)
+        public void SetTerrainController(VoxelTerrainController<T> gen)
         {
             controller = gen;
         }
