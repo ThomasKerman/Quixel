@@ -58,7 +58,13 @@ namespace Quixel
         {
             TerrainObject = terrainObject;
             WorldName = name;
+        }
 
+        /// <summary>
+        /// Creates the voxel managers
+        /// </summary>
+        public void Init()
+        {
             // Manager
             meshFactory = new MeshFactory<T>(this);
             nodeManager = new NodeManager<T>(this);
