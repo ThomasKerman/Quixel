@@ -31,9 +31,10 @@ namespace Quixel
         /// <param name="pos">The (real world) position</param>
         public override TerrainData BuildVoxelData(Vector3 center, Vector3 pos)
         {
-            TerrainData data = new TerrainData()
+            Vector3 dist = pos - center;
+            TerrainData data = new TerrainData
             {
-                density = pos.y +  50f,
+                density = -(dist.y - 50f),
                 materialIndex = 0
             };
             return data;
@@ -44,7 +45,7 @@ namespace Quixel
         /// </summary>
         public override Single ExtractDensity(TerrainData data)
         {
-            return data.density;
+            return -data.density;
         }
 
         /// <summary>

@@ -91,6 +91,12 @@ namespace Quixel
         public NodeManager(QuixelEngine<T> engine)
         {
             Engine = engine;
+            nodeCount = new int[Engine.MaxLOD + 1];
+            LODSize = new int[Engine.MaxLOD + 1];
+            for (int i = 0; i <= Engine.MaxLOD; i++)
+            {
+                LODSize[i] = (int)Mathf.Pow(2, i + Engine.Size);
+            }
             float nSize = LODSize[Engine.MaxLOD] * nodeSize;
             for (int x = -1; x < 2; x++)
             {
@@ -139,9 +145,9 @@ namespace Quixel
                             topNodes[0, y, z] = topNodes[1, y, z];
                             topNodes[1, y, z] = topNodes[2, y, z];
                             topNodes[2, y, z] = new Node<T>(null, this,
-                                                new Vector3((curTopNode.x * nodeWidth) + nodeWidth,
-                                                    (curTopNode.y * nodeWidth) + ((y - 1) * nodeWidth),
-                                                    (curTopNode.z * nodeWidth) + ((z - 1) * nodeWidth)),
+                                                new Vector3((curTopNode.x * nodeWidth) + nodeWidth, 
+                                                (curTopNode.y * nodeWidth) + nodeWidth, 
+                                                (curTopNode.z * nodeWidth) + nodeWidth), 
                                                 0, Engine.MaxLOD, Node<T>.RenderType.FRONT);
                         }
                     }
@@ -159,8 +165,8 @@ namespace Quixel
                             topNodes[1, y, z] = topNodes[0, y, z];
                             topNodes[0, y, z] = new Node<T>(null, this,
                                                 new Vector3((curTopNode.x * nodeWidth) - nodeWidth,
-                                                    (curTopNode.y * nodeWidth) + ((y - 1) * nodeWidth),
-                                                    (curTopNode.z * nodeWidth) + ((z - 1) * nodeWidth)),
+                                                    (curTopNode.y * nodeWidth) + nodeWidth,
+                                                    (curTopNode.z * nodeWidth) + nodeWidth),
                                                 0, Engine.MaxLOD, Node<T>.RenderType.FRONT);
                         }
                     }
@@ -177,9 +183,9 @@ namespace Quixel
                             topNodes[x, 0, z] = topNodes[x, 1, z];
                             topNodes[x, 1, z] = topNodes[x, 2, z];
                             topNodes[x, 2, z] = new Node<T>(null, this,
-                                                new Vector3((curTopNode.x * nodeWidth) + ((x - 1) * nodeWidth),
+                                                new Vector3((curTopNode.x * nodeWidth) + nodeWidth,
                                                     (curTopNode.y * nodeWidth) + nodeWidth,
-                                                    (curTopNode.z * nodeWidth) + ((z - 1) * nodeWidth)),
+                                                    (curTopNode.z * nodeWidth) + nodeWidth),
                                                 0, Engine.MaxLOD, Node<T>.RenderType.FRONT);
                         }
                     }
@@ -196,9 +202,9 @@ namespace Quixel
                             topNodes[x, 2, z] = topNodes[x, 1, z];
                             topNodes[x, 1, z] = topNodes[x, 0, z];
                             topNodes[x, 0, z] = new Node<T>(null, this,
-                                                new Vector3((curTopNode.x * nodeWidth) + ((x - 1) * nodeWidth),
+                                                new Vector3((curTopNode.x * nodeWidth) + nodeWidth,
                                                     (curTopNode.y * nodeWidth) - nodeWidth,
-                                                    (curTopNode.z * nodeWidth) + ((z - 1) * nodeWidth)),
+                                                    (curTopNode.z * nodeWidth) + nodeWidth),
                                                 0, Engine.MaxLOD, Node<T>.RenderType.FRONT);
                         }
                     }
@@ -216,8 +222,8 @@ namespace Quixel
                             topNodes[x, y, 0] = topNodes[x, y, 1];
                             topNodes[x, y, 1] = topNodes[x, y, 2];
                             topNodes[x, y, 2] = new Node<T>(null, this,
-                                                new Vector3((curTopNode.x * nodeWidth) + ((x - 1) * nodeWidth),
-                                                    (curTopNode.y * nodeWidth) + ((y - 1) * nodeWidth),
+                                                new Vector3((curTopNode.x * nodeWidth) + nodeWidth,
+                                                    (curTopNode.y * nodeWidth) + nodeWidth,
                                                     (curTopNode.z * nodeWidth) + nodeWidth),
                                                 0, Engine.MaxLOD, Node<T>.RenderType.FRONT);
                         }
@@ -236,8 +242,8 @@ namespace Quixel
                             topNodes[x, y, 2] = topNodes[x, y, 1];
                             topNodes[x, y, 1] = topNodes[x, y, 0];
                             topNodes[x, y, 0] = new Node<T>(null, this,
-                                                new Vector3((curTopNode.x * nodeWidth) + ((x - 1) * nodeWidth),
-                                                    (curTopNode.y * nodeWidth) + ((y - 1) * nodeWidth),
+                                                new Vector3((curTopNode.x * nodeWidth) + nodeWidth,
+                                                    (curTopNode.y * nodeWidth) + nodeWidth,
                                                     (curTopNode.z * nodeWidth) - nodeWidth),
                                                 0, Engine.MaxLOD, Node<T>.RenderType.FRONT);
                         }

@@ -38,9 +38,9 @@ namespace Quixel
         {
             Single distance = Vector2.Distance(new Vector2(center.x, center.z), new Vector2(pos.x, pos.z));
             Single yy = Math.Abs(pos.y - center.y);
-            TerrainData data = new TerrainData()
+            TerrainData data = new TerrainData
             {
-                density = distance <= radius ? yy + height : 100f,
+                density = distance <= radius ? -(yy + height) : -100f,
                 materialIndex = 0
             };
             return data;

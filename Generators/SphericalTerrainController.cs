@@ -30,10 +30,11 @@ namespace Quixel
         /// <param name="pos">The (real world) position</param>
         public override TerrainData BuildVoxelData(Vector3 center, Vector3 pos)
         {
-            Single distance = Vector3.Distance(center, pos);
-            TerrainData data = new TerrainData()
+            Vector3 dist = pos - center;
+            Single density = (-dist.magnitude + radius) * 50;
+            TerrainData data = new TerrainData
             {
-                density = distance <= radius ? -100f : 100f,
+                density = density,
                 materialIndex = 0
             };
             return data;

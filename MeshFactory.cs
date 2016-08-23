@@ -12,11 +12,11 @@ namespace Quixel
     /// </summary>
     public class MeshFactory<T>
     {
-        public QuixelEngine<T> Engine { get; }
-        public float isolevel = 5f;
+        public QuixelEngine<T> Engine { get; private set; }
+        public float isolevel = 0f;
 
         public Queue<MeshRequest<T>> setMeshQueue = new Queue<MeshRequest<T>>();
-        public GeneratorThread<T>[] generatorThreads = new GeneratorThread<T>[4];
+        public GeneratorThread<T>[] generatorThreads;
         public Queue<MeshRequest<T>>[] requestArray;
 
         public int requestNum = 0;
@@ -293,7 +293,7 @@ namespace Quixel
             Vector3 ws = new Vector3(node.position.x + (nodeWidth * pos.x),
                 node.position.y + (nodeWidth * pos.y),
                 node.position.z + (nodeWidth * pos.z));
-            return Engine.controller.BuildVoxelData(Engine.TerrainObject.transform.position, ws);
+            return Engine.controller.BuildVoxelData(Engine.TerrainObject_Position, ws);
         }
 
         /// <summary>
@@ -408,23 +408,22 @@ namespace Quixel
             if (Mathf.Abs(isolevel - valp1) < 0.00001)
             {
                 p[0] = p1;
-                return p;
             }
-            if (Mathf.Abs(isolevel - valp2) < 0.00001)
+            else if (Mathf.Abs(isolevel - valp2) < 0.00001)
             {
                 p[0] = p2;
-                return p;
             }
-            if (Mathf.Abs(valp1 - valp2) < 0.00001)
+            else if (Mathf.Abs(valp1 - valp2) < 0.00001)
             {
                 p[0] = p1;
-                return p;
             }
-
-            mu = (isolevel - valp1) / (valp2 - valp1);
-            p[0].x = p1.x + mu * (p2.x - p1.x);
-            p[0].y = p1.y + mu * (p2.y - p1.y);
-            p[0].z = p1.z + mu * (p2.z - p1.z);
+            else
+            {
+                mu = (isolevel - valp1) / (valp2 - valp1);
+                p[0].x = p1.x + mu * (p2.x - p1.x);
+                p[0].y = p1.y + mu * (p2.y - p1.y);
+                p[0].z = p1.z + mu * (p2.z - p1.z);
+            }
 
             float dist1 = Vector3.Distance(p1, p2);
             float dist2 = Vector3.Distance(p2, p[0]);

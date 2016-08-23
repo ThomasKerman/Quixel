@@ -16,7 +16,7 @@ namespace Quixel
         /// <summary>
         /// The name of the world
         /// </summary>
-        public String WorldName { get; set; }
+        public String WorldName { get; private set; }
 
         /// <summary>
         /// Whether the engine is active
@@ -31,7 +31,8 @@ namespace Quixel
         /// <summary>
         /// The parent object of the terrain
         /// </summary>
-        public GameObject TerrainObject { get; }
+        public GameObject TerrainObject { get; private set; }
+        public Vector3 TerrainObject_Position { get; private set; }
 
         /// <summary>
         /// The player object that is used to determine the position for LOD
@@ -41,7 +42,8 @@ namespace Quixel
         /// <summary>
         /// The maximum LOD for the voxel
         /// </summary>
-        public Int32 MaxLOD { get; set; }
+        public Int32 MaxLOD { get; private set; }
+        public Int32 Size { get; private set; }
 
         // Managers
         public MeshFactory<T> meshFactory;
@@ -51,9 +53,8 @@ namespace Quixel
         /// <summary>
         /// Initializes the Quixel Engine
         /// </summary>
-        /// <param name="mats">Array of materials.</param>
-        /// <param name="terrainObj">Parent terrain object. (empty)</param>
-        /// <param name="worldName">Name of the world. Used for paging. (empty)</param>
+        /// <param name="terrainObject">Parent terrain object. (empty)</param>
+        /// <param name="name">Name of the world. Used for paging. (empty)</param>
         public QuixelEngine(GameObject terrainObject, String name)
         {
             TerrainObject = terrainObject;
@@ -66,6 +67,7 @@ namespace Quixel
         public void Init()
         {
             // Manager
+            _active = true;
             meshFactory = new MeshFactory<T>(this);
             nodeManager = new NodeManager<T>(this);
             chunkPool = new ChunkPool<T>(this);
@@ -79,12 +81,7 @@ namespace Quixel
         public void SetVoxelSize(int size, int maxLOD)
         {
             MaxLOD = maxLOD;
-            nodeManager.nodeCount = new int[MaxLOD+1];
-            nodeManager.LODSize = new int[MaxLOD+1];
-            for (int i = 0; i <= MaxLOD; i++)
-            {
-                nodeManager.LODSize[i] = (int)Mathf.Pow(2, i + size);
-            }
+            Size = size;
         }
         
         /// <summary>
@@ -100,6 +97,7 @@ namespace Quixel
         /// </summary>
         public void Update()
         {
+            TerrainObject_Position = TerrainObject.transform.position;
             meshFactory.Update();
             if (PlayerObject != null)
                 nodeManager.SetViewPosition(PlayerObject.transform.position);
