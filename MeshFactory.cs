@@ -49,6 +49,7 @@ namespace Quixel
             chunkObj.AddComponent<MeshFilter>();
             chunkObj.AddComponent<MeshRenderer>();
             chunkObj.AddComponent<MeshCollider>();
+            UnityEngine.Object.DontDestroyOnLoad(chunkObj);
 
             // Arrays
             generatorThreads = new GeneratorThread<T>[4];
