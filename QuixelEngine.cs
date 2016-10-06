@@ -37,7 +37,7 @@ namespace Quixel
         /// <summary>
         /// The player object that is used to determine the position for LOD
         /// </summary>
-        public GameObject PlayerObject { get; private set; }
+        public Func<GameObject> PlayerObject { get; private set; }
 
         /// <summary>
         /// The maximum LOD for the voxel
@@ -72,7 +72,7 @@ namespace Quixel
         public void Init()
         {
             // Checks
-            if (PlayerObject == null)
+            if (PlayerObject?.Invoke() == null)
                 throw new Exception("The player object is null.");
             if (TerrainObject == null)
                 throw new Exception("The terrain object is null.");
@@ -125,14 +125,14 @@ namespace Quixel
             TerrainObject_Position = TerrainObject.transform.position;
             meshFactory.Update();
             if (PlayerObject != null)
-                nodeManager.SetViewPosition(PlayerObject.transform.position);
+                nodeManager.SetViewPosition(PlayerObject().transform.position);
             _active = Application.isPlaying;
         }
 
         /// <summary>
         /// Sets the object to follow for the LOD system.
         /// </summary>
-        public void SetCameraObj(GameObject obj)
+        public void SetCameraObj(Func<GameObject> obj)
         {
             PlayerObject = obj;
         }
