@@ -81,14 +81,14 @@ namespace Quixel
             {
                 node.chunk = node.manager.Engine.chunkPool.GetChunk();
                 if (node.LOD > 2)
-                    node.chunk.transform.position = node.position - new Vector3(0f, (node.manager.LODSize[node.LOD] / 2f), 0f);
+                    node.chunk.transform.position = node.position - ShiftVector(node);
                 else
                     node.chunk.transform.position = node.position;
                 node.chunk.GetComponent<MeshRenderer>().materials = Materials;
             }
             node.chunk.GetComponent<MeshFilter>().mesh = mesh;
-            if (node.LOD == 0 && node.collides)
-                node.chunk.GetComponent<MeshCollider>().sharedMesh = mesh;
+            node.chunk.GetComponent<MeshCollider>().sharedMesh = mesh;
+            node.chunk.GetComponent<MeshCollider>().enabled = node.LOD == 0 && node.collides;
         }
 
         /// <summary>
@@ -115,6 +115,23 @@ namespace Quixel
         public override void SetRenderState(Node<TerrainData> node, Boolean state)
         {
             node.chunk.GetComponent<Renderer>().enabled = state;
+        }
+
+        /// <summary>
+        /// Defines whether the mesh of the node should have a collider
+        /// </summary>
+        public override void SetCollisionState(Node<TerrainData> node, Boolean state)
+        {
+            if (node.chunk != null)
+                node.chunk.GetComponent<MeshCollider>().enabled = state;
+        }
+
+        /// <summary>
+        /// Returns a vector that is used to move higher LOD levels
+        /// </summary>
+        public virtual Vector3 ShiftVector(Node<TerrainData> node)
+        {
+            return new Vector3(0f, node.manager.LODSize[node.LOD] / 2f, 0f);
         }
     }
 }

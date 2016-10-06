@@ -535,11 +535,7 @@ namespace Quixel
                     curChunk.y >= viewChunk.y - 3 && curChunk.y <= viewChunk.y + 3 &&
                     curChunk.z >= viewChunk.z - 3 && curChunk.z <= viewChunk.z + 3)
                 {
-                    collides = true;
-                    if (chunk != null)
-                    {
-                        // chunk.GetComponent<MeshCollider>().sharedMesh = chunk.GetComponent<MeshFilter>().sharedMesh;
-                    }
+                    manager.Engine.controller.SetCollisionState(this, true);
                 }
             }
 

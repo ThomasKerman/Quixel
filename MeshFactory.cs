@@ -52,7 +52,7 @@ namespace Quixel
             UnityEngine.Object.DontDestroyOnLoad(chunkObj);
 
             // Arrays
-            generatorThreads = new GeneratorThread<T>[4];
+            generatorThreads = new GeneratorThread<T>[Engine.GeneratorThreadCount];
             requestArray = new Queue<MeshRequest<T>>[Engine.MaxLOD + 2];
             for (int i = 0; i < requestArray.Length; i++)
                 requestArray[i] = new Queue<MeshRequest<T>>();

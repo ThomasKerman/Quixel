@@ -39,5 +39,12 @@ namespace Quixel
             };
             return data;
         }
+
+        public override Vector3 ShiftVector(Node<TerrainData> node)
+        {
+            Vector3 center = node.manager.Engine.TerrainObject_Position;
+            Vector3 direction = (node.position - center).normalized;
+            return direction * node.manager.LODSize[node.LOD] / 2f;
+        }
     }
 }

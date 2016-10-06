@@ -42,6 +42,8 @@ namespace Quixel
                 totalCreated++;
                 GameObject obj = (GameObject)GameObject.Instantiate(Engine.meshFactory.chunkObj);
                 obj.transform.parent = Engine.TerrainObject.transform;
+                obj.transform.position = Engine.TerrainObject.transform.position = Engine.TerrainObject_Position;
+                obj.transform.localPosition = Engine.TerrainObject.transform.localPosition = Vector3.zero;
                 return obj;
             }
 

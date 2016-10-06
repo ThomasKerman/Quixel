@@ -45,6 +45,11 @@ namespace Quixel
         public Int32 MaxLOD { get; private set; }
         public Int32 Size { get; private set; }
 
+        /// <summary>
+        /// The amount of generator threads
+        /// </summary>
+        public Int32 GeneratorThreadCount { get; private set; }
+
         // Managers
         public MeshFactory<T> meshFactory;
         public NodeManager<T> nodeManager;
@@ -66,6 +71,18 @@ namespace Quixel
         /// </summary>
         public void Init()
         {
+            // Checks
+            if (PlayerObject == null)
+                throw new Exception("The player object is null.");
+            if (TerrainObject == null)
+                throw new Exception("The terrain object is null.");
+            if (String.IsNullOrEmpty(WorldName))
+                throw new Exception("The world name is null or empty.");
+            if (controller == null)
+                throw new Exception("The terrain controller is null.");
+            if (GeneratorThreadCount == 0)
+                throw new Exception("The amount of generator threads is zero.");
+
             // Manager
             _active = true;
             meshFactory = new MeshFactory<T>(this);
@@ -82,6 +99,14 @@ namespace Quixel
         {
             MaxLOD = maxLOD;
             Size = size;
+        }
+
+        /// <summary>
+        /// Sets the amount of threads used to generate the terrain data
+        /// </summary>
+        public void SetGeneratorThreadCount(Int32 count)
+        {
+            GeneratorThreadCount = count;
         }
         
         /// <summary>

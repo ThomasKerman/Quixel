@@ -49,5 +49,10 @@ namespace Quixel
         /// Defines whether the node should be rendered
         /// </summary>
         public abstract void SetRenderState(Node<T> node, Boolean state);
+
+        /// <summary>
+        /// Defines whether the mesh of the node should have a collider
+        /// </summary>
+        public abstract void SetCollisionState(Node<T> node, Boolean state);
     }
 }
