@@ -79,23 +79,30 @@ namespace Quixel
             bool sleep = true;
             while (Engine.IsActive())
             {
-                MeshFactory<T>.MeshRequest<T> req = Engine.meshFactory.GetNextRequest();
-                sleep = req == null;
-                if (!sleep)
+                try
                 {
-                    if (req.terrainData == null)
-                        if (!req.hasDensities)
-                            req.terrainData = new VoxelData<T>();
-                        else
-                            req.terrainData = req.node.data;
-                    Engine.meshFactory.GenerateMeshData(req);
-                    lock (finishedQueue)
-                        finishedQueue.Enqueue(req);
-                    Thread.Sleep(4);
+                    MeshFactory<T>.MeshRequest<T> req = Engine.meshFactory.GetNextRequest();
+                    sleep = req == null;
+                    if (!sleep)
+                    {
+                        if (req.terrainData == null)
+                            if (!req.hasDensities)
+                                req.terrainData = new VoxelData<T>();
+                            else
+                                req.terrainData = req.node.data;
+                        Engine.meshFactory.GenerateMeshData(req);
+                        lock (finishedQueue)
+                            finishedQueue.Enqueue(req);
+                        Thread.Sleep(4);
+                    }
+                    else
+                    {
+                        Thread.Sleep(30);
+                    }
                 }
-                else
+                catch (Exception e)
                 {
-                    Thread.Sleep(30);
+                    Debug.LogException(e);
                 }
             }
         }
